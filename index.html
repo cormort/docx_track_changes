@@ -3,67 +3,157 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Word 多人修訂合併神器 (HTML重構版)</title>
+    <title>Word 多人修訂合併神器</title>
     <style>
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
-            line-height: 1.6; margin: 0; padding: 20px; background-color: #f4f7f9; color: #333; 
+        :root {
+            --c-bg: #f4f7f9;
+            --c-card: #ffffff;
+            --c-text: #2c3e50;
+            --c-muted: #7f8c8d;
+            --c-border: #e1e7ec;
+            --c-primary: #3498db;
+            --c-primary-dark: #2980b9;
+            --c-accent: #8e44ad;
+            --c-ok: #27ae60;
+            --c-warn: #f39c12;
+            --c-bad: #e74c3c;
+            --shadow-sm: 0 2px 4px rgba(0,0,0,.06);
+            --shadow-md: 0 4px 15px rgba(0,0,0,.08);
+            --radius: 8px;
         }
-        .container { 
-            max-width: 1200px; margin: 20px auto; padding: 25px; background-color: #ffffff; 
-            border-radius: 8px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); 
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang TC", "Microsoft JhengHei", sans-serif;
+            line-height: 1.6; margin: 0; padding: 20px; background-color: var(--c-bg); color: #333;
         }
-        h1 { color: #2c3e50; text-align: center; border-bottom: 2px solid #3498db; padding-bottom: 10px; margin-bottom: 20px;}
-        
+        .container {
+            max-width: 1280px; margin: 20px auto; padding: 28px;
+            background-color: var(--c-card);
+            border-radius: var(--radius); box-shadow: var(--shadow-md);
+        }
+        h1 { color: var(--c-text); text-align: center; border-bottom: 2px solid var(--c-primary); padding-bottom: 12px; margin: 0 0 24px; }
+        .subtitle { text-align: center; color: var(--c-muted); margin-top: -16px; margin-bottom: 24px; font-size: 0.95em; }
+
+        /* Upload */
         #uploadSection { margin-bottom: 20px; }
-        #fileDropZone { 
-            border: 2px dashed #3498db; border-radius: 8px; padding: 40px; text-align: center; 
-            color: #888; font-size: 1.2em; transition: all 0.3s; cursor: pointer; background: #fafafa;
+        #fileDropZone {
+            border: 2px dashed var(--c-primary); border-radius: var(--radius); padding: 40px; text-align: center;
+            color: #888; font-size: 1.15em; transition: all 0.2s; cursor: pointer; background: #fafcfe;
         }
-        #fileDropZone:hover, #fileDropZone.dragover { background-color: #eaf5ff; border-color: #2980b9; }
-        .hidden { display: none; }
-        
-        /* 雙分頁 (Tabs) 樣式 */
-        #resultSection { display: none; margin-top: 20px; }
-        .tabs { display: flex; border-bottom: 2px solid #3498db; margin-bottom: 20px; }
+        #fileDropZone:hover, #fileDropZone.dragover { background-color: #eaf5ff; border-color: var(--c-primary-dark); color: #444; }
+        #fileDropZone.compact { padding: 16px; font-size: 0.95em; }
+        .hidden { display: none !important; }
+
+        /* Status */
+        #status { text-align: center; font-weight: 600; margin: 12px 0; min-height: 24px; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        .spinner {
+            width: 16px; height: 16px; border: 2px solid #ddd; border-top-color: var(--c-primary);
+            border-radius: 50%; animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* File list chips */
+        #fileList { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 16px; justify-content: center; }
+        .file-chip {
+            background: #ecf0f1; border-radius: 16px; padding: 4px 12px; font-size: 0.85em;
+            color: #555; display: inline-flex; align-items: center; gap: 6px;
+        }
+        .file-chip::before { content: "📄"; }
+
+        /* Stats */
+        .stats-bar {
+            display: flex; flex-wrap: wrap; gap: 12px; padding: 14px 16px; margin-bottom: 18px;
+            background: linear-gradient(135deg, #f8fafc 0%, #eef4f8 100%);
+            border: 1px solid var(--c-border); border-radius: var(--radius);
+        }
+        .stat { display: flex; flex-direction: column; min-width: 90px; }
+        .stat-num { font-size: 1.4em; font-weight: 700; color: var(--c-text); }
+        .stat-label { font-size: 0.78em; color: var(--c-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-divider { width: 1px; background: var(--c-border); }
+        .author-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; flex: 1; min-width: 200px; }
+        .author-chip {
+            display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 12px;
+            font-size: 0.85em; font-weight: 600; cursor: pointer; user-select: none;
+            border: 1.5px solid transparent; transition: all 0.15s;
+        }
+        .author-chip:hover { transform: translateY(-1px); }
+        .author-chip.dim { opacity: 0.4; }
+        .author-chip .count { background: rgba(255,255,255,.85); color: #333; padding: 0 6px; border-radius: 8px; font-size: 0.85em; }
+
+        /* Tabs */
+        #resultSection { display: none; margin-top: 12px; }
+        .tabs-row { display: flex; align-items: flex-end; border-bottom: 2px solid var(--c-primary); margin-bottom: 18px; gap: 4px; }
         .tab-btn {
-            padding: 12px 24px; cursor: pointer; background-color: #ecf0f1; border: 1px solid #bdc3c7; 
-            border-bottom: none; margin-right: 5px; border-radius: 6px 6px 0 0; font-size: 16px; font-weight: bold; color: #7f8c8d;
-            transition: 0.2s;
+            padding: 11px 22px; cursor: pointer; background-color: #ecf0f1; border: 1px solid #cdd6db;
+            border-bottom: none; border-radius: 6px 6px 0 0; font-size: 15px; font-weight: 600; color: var(--c-muted);
+            transition: 0.15s; font-family: inherit;
         }
-        .tab-btn.active { background-color: #3498db; color: white; border-color: #3498db; }
-        .tab-btn:hover:not(.active) { background-color: #dfe6e9; }
-        .tab-content { display: none; animation: fadeIn 0.3s ease-in-out; }
+        .tab-btn:hover:not(.active) { background-color: #dfe6e9; color: #444; }
+        .tab-btn.active { background-color: var(--c-primary); color: white; border-color: var(--c-primary); }
+        .tab-btn:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+        .tab-actions { margin-left: auto; display: flex; gap: 6px; padding-bottom: 4px; }
+        .tab-content { display: none; animation: fadeIn 0.25s ease-in-out; }
         .tab-content.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: none; } }
 
-        /* 工具列與表格 */
-        .toolbar { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
-        .btn-export { 
-            padding: 10px 18px; border: none; border-radius: 4px; cursor: pointer; 
-            font-weight: bold; display: flex; align-items: center; gap: 5px; transition: 0.2s; font-size: 15px;
+        /* Toolbar */
+        .toolbar { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+        .toolbar .search-box {
+            flex: 1; min-width: 200px; padding: 8px 12px; border: 1px solid var(--c-border);
+            border-radius: 6px; font-size: 14px; font-family: inherit;
         }
-        .btn-primary { background-color: #8e44ad; color: white; font-size: 18px; padding: 15px 30px; box-shadow: 0 4px 6px rgba(142, 68, 173, 0.3); margin: 20px auto; display: block; }
-        .btn-primary:hover { background-color: #9b59b6; transform: translateY(-2px); box-shadow: 0 6px 10px rgba(142, 68, 173, 0.4); }
-        .btn-word { background-color: #2980b9; color: white; }
-        .btn-html { background-color: #3498db; color: white; }
-        .btn-csv { background-color: #27ae60; color: white; }
-        .btn-reset { background-color: #e74c3c; color: white; }
-        .btn-export:hover { opacity: 0.8; transform: translateY(-1px); }
+        .toolbar .search-box:focus { outline: none; border-color: var(--c-primary); box-shadow: 0 0 0 3px rgba(52,152,219,.15); }
+        .toolbar-spacer { flex: 1; }
+        .btn {
+            padding: 8px 14px; border: none; border-radius: 5px; cursor: pointer; font-weight: 600;
+            font-family: inherit; font-size: 14px; display: inline-flex; align-items: center; gap: 5px;
+            transition: 0.15s; box-shadow: var(--shadow-sm);
+        }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,.12); }
+        .btn:active { transform: translateY(0); }
+        .btn-primary { background-color: var(--c-accent); color: white; font-size: 17px; padding: 14px 28px; box-shadow: 0 4px 10px rgba(142,68,173,.3); margin: 16px auto; display: block; }
+        .btn-primary:hover { background-color: #9b59b6; box-shadow: 0 6px 14px rgba(142,68,173,.4); }
+        .btn-word { background-color: var(--c-primary-dark); color: white; }
+        .btn-html { background-color: var(--c-primary); color: white; }
+        .btn-csv { background-color: var(--c-ok); color: white; }
+        .btn-reset { background-color: var(--c-bad); color: white; }
+        .btn-ghost { background-color: #ecf0f1; color: #555; }
+        .btn-ghost:hover { background-color: #dfe6e9; }
 
-        table { width: 100%; border-collapse: collapse; background-color: white; table-layout: fixed; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; vertical-align: top; word-wrap: break-word; }
-        th { background-color: #2c3e50; color: white; }
-        tr:nth-child(even) { background-color: #fcfcfc; }
-        .repeated-para-row td { border-top: 1px dashed #eee; }
-        
-        .ins-badge { background-color: #2ecc71; color: white; padding: 2px 5px; border-radius: 3px; font-size: 0.8em; margin-right: 3px;}
-        .del-badge { background-color: #e74c3c; color: white; padding: 2px 5px; border-radius: 3px; font-size: 0.8em; margin-right: 3px;}
-        .fmt-badge { background-color: #f39c12; color: white; padding: 2px 5px; border-radius: 3px; font-size: 0.8em; margin-right: 3px;}
+        /* Table */
+        .table-wrap { max-height: 70vh; overflow: auto; border: 1px solid var(--c-border); border-radius: var(--radius); background: white; }
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        th, td { border-bottom: 1px solid var(--c-border); padding: 12px; text-align: left; vertical-align: top; word-wrap: break-word; }
+        th { background-color: var(--c-text); color: white; position: sticky; top: 0; z-index: 1; font-weight: 600; }
+        tr:hover td { background-color: #f8fbfd; }
+        tr.repeated-para-row td { border-top: 1px dashed #d4dde4; }
+        tr.row-group-start td { border-top: 3px solid var(--c-primary); }
+        .empty-row td { text-align: center; color: var(--c-muted); padding: 40px 12px; font-style: italic; }
 
-        .hero-box { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 30px; text-align: center; }
-        .hero-box h3 { margin-top: 0; color: #2c3e50; }
-        .hero-box p { color: #555; font-size: 1.1em; }
+        .author-cell { display: flex; flex-direction: column; gap: 4px; }
+        .author-tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.85em; font-weight: 600; }
+        .row-num { color: var(--c-muted); font-size: 0.8em; }
+        .badge { color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.78em; margin-right: 4px; font-weight: 600; }
+        .ins-badge { background-color: var(--c-ok); }
+        .del-badge { background-color: var(--c-bad); }
+        .fmt-badge { background-color: var(--c-warn); }
+        .move-badge { background-color: #1abc9c; }
+
+        del { color: var(--c-bad); text-decoration: line-through; }
+        .ins-text { color: var(--c-ok); text-decoration: underline; font-weight: 600; }
+
+        /* Hero */
+        .hero-box { background: linear-gradient(135deg, #f8f9fb 0%, #eef2f7 100%); border: 1px solid var(--c-border); border-radius: var(--radius); padding: 32px; text-align: center; }
+        .hero-box h3 { margin-top: 0; color: var(--c-text); }
+        .hero-box p { color: #555; font-size: 1.05em; }
+
+        @media (max-width: 720px) {
+            .container { padding: 16px; margin: 8px; }
+            .tabs-row { flex-wrap: wrap; }
+            .tab-actions { margin-left: 0; width: 100%; justify-content: flex-end; }
+            th, td { padding: 8px; font-size: 0.9em; }
+            table { table-layout: auto; }
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/pizzip@3.1.5/dist/pizzip.min.js"></script>
 </head>
@@ -71,52 +161,60 @@
 
     <div class="container">
         <h1>Word 多人修訂合併神器</h1>
+        <p class="subtitle">將多份來自同一原稿的 .docx 修訂版本合併為一份對照表 / 重構文件</p>
 
         <div id="uploadSection">
-            <div id="fileDropZone" onclick="document.getElementById('wordFiles').click();">
+            <div id="fileDropZone" onclick="document.getElementById('wordFiles').click();" role="button" tabindex="0"
+                 onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('wordFiles').click();}">
                 將 <b>多個</b> .docx 檔案拖曳至此處，或點擊選擇檔案
-                <br><span style="font-size:0.8em; color:#888;">(請確保上傳的檔案皆源自同一份原始文件)</span>
+                <br><span style="font-size:0.85em; color:#888;">(請確保上傳的檔案皆源自同一份原始文件)</span>
                 <input type="file" id="wordFiles" accept=".docx" multiple class="hidden">
             </div>
         </div>
 
-        <div id="status" style="text-align:center; font-weight:bold; margin: 10px 0;"></div>
+        <div id="status"></div>
+        <div id="fileList"></div>
 
-        <div id="resultSection">
-            <!-- 分頁按鈕區 -->
-            <div class="tabs">
-                <div class="tab-btn active" onclick="switchTab('tab-table')">👁️ 檢視與匯出表格 (分析用)</div>
-                <div class="tab-btn" onclick="switchTab('tab-doc')">📄 下載重構文件 (閱讀用)</div>
-                <button class="btn-export btn-reset" style="margin-left:auto; margin-bottom: 5px;" onclick="resetUI()">🔄 清除重來</button>
-            </div>
+        <div id="resultSection" role="region" aria-label="解析結果">
+            <div class="stats-bar" id="statsBar"></div>
 
-            <!-- 分頁 1：表格對照檢視 -->
-            <div id="tab-table" class="tab-content active">
-                <div class="toolbar">
-                    <button class="btn-export btn-word" onclick="exportToWordTable()">📝 將表格匯出成 Word</button>
-                    <button class="btn-export btn-html" onclick="exportToHTML()">🌐 匯出 HTML</button>
-                    <button class="btn-export btn-csv" onclick="exportToCSV()">📊 匯出 CSV</button>
+            <div class="tabs-row" role="tablist">
+                <button class="tab-btn active" role="tab" aria-selected="true" data-tab="tab-table">👁️ 檢視與匯出表格</button>
+                <button class="tab-btn" role="tab" aria-selected="false" data-tab="tab-doc">📄 重構合併文件</button>
+                <div class="tab-actions">
+                    <button class="btn btn-ghost" onclick="document.getElementById('wordFiles').click()">➕ 加入更多檔案</button>
+                    <button class="btn btn-reset" onclick="resetUI()">🔄 全部清除</button>
                 </div>
-                <table id="revisionTable">
-                    <thead>
-                        <tr>
-                            <th width="15%">作者 + 序號</th>
-                            <th width="32%">追蹤修訂後的段落文字 (含增刪標記)</th>
-                            <th width="28%">追蹤修訂前的原始段落</th>
-                            <th width="25%">追蹤修正的說明</th>
-                        </tr>
-                    </thead>
-                    <tbody id="resultBody"></tbody>
-                </table>
             </div>
 
-            <!-- 分頁 2：重構合併文件 -->
-            <div id="tab-doc" class="tab-content">
+            <div id="tab-table" class="tab-content active" role="tabpanel">
+                <div class="toolbar">
+                    <input type="text" class="search-box" id="searchBox" placeholder="🔍 在修訂內容中搜尋..." aria-label="搜尋">
+                    <button class="btn btn-word" onclick="exportToWordTable()">📝 匯出 Word</button>
+                    <button class="btn btn-html" onclick="exportToHTML()">🌐 匯出 HTML</button>
+                    <button class="btn btn-csv" onclick="exportToCSV()">📊 匯出 CSV</button>
+                </div>
+                <div class="table-wrap">
+                    <table id="revisionTable">
+                        <thead>
+                            <tr>
+                                <th style="width:15%">作者 + 序號</th>
+                                <th style="width:32%">追蹤修訂後的段落文字 (含增刪標記)</th>
+                                <th style="width:28%">追蹤修訂前的原始段落</th>
+                                <th style="width:25%">追蹤修正的說明</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="tab-doc" class="tab-content" role="tabpanel">
                 <div class="hero-box">
                     <h3>擺脫 XML 衝突！全新重構乾淨的合併文件</h3>
                     <p>此功能避開了 Word 底層極易損毀的追蹤修訂機制，改為直接讀取 HTML 視覺資料。<br><b>系統將以原文件的段落順序，重新生成一份完整且不會跑版的 Word 文件。</b></p>
-                    <button class="btn-export btn-primary" onclick="exportToVisualDoc()">📄 下載重構的合併文件 (.doc)</button>
-                    <p style="font-size: 0.9em; color: #7f8c8d;">※ 此檔案保留了文件的原始閱讀動線，未修改的段落會保持原樣；有多人修改的段落，會自動分列並用顏色標示作者與增刪內容。</p>
+                    <button class="btn btn-primary" onclick="exportToVisualDoc()">📄 下載重構的合併文件 (.doc)</button>
+                    <p style="font-size: 0.9em; color: var(--c-muted);">※ 此檔案保留了文件的原始閱讀動線，未修改的段落會保持原樣；有多人修改的段落，會自動分列並用顏色標示作者與增刪內容。</p>
                 </div>
             </div>
         </div>
@@ -125,29 +223,46 @@
     <script>
         let combinedRevisionsMap = new Map();
         let orderedParagraphIds = [];
+        let processedFileNames = new Set();
         let baseFileName = "merged_revisions";
+        let authorColors = new Map();
+        let activeAuthorFilter = null;
 
         const fileInput = document.getElementById('wordFiles');
         const statusDiv = document.getElementById('status');
+        const fileListDiv = document.getElementById('fileList');
         const dropZone = document.getElementById('fileDropZone');
 
         dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
         dropZone.addEventListener('dragleave', e => { e.preventDefault(); dropZone.classList.remove('dragover'); });
-        dropZone.addEventListener('drop', e => { 
+        dropZone.addEventListener('drop', e => {
             e.preventDefault(); dropZone.classList.remove('dragover');
-            if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files); 
+            if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
         });
         fileInput.addEventListener('change', e => { if (e.target.files.length) handleFiles(e.target.files); });
-        
+
+        document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
+            btn.addEventListener('click', () => switchTab(btn.dataset.tab, btn));
+            btn.addEventListener('keydown', e => {
+                const tabs = [...document.querySelectorAll('.tab-btn[data-tab]')];
+                const i = tabs.indexOf(btn);
+                if (e.key === 'ArrowRight') { e.preventDefault(); tabs[(i+1) % tabs.length].focus(); tabs[(i+1) % tabs.length].click(); }
+                if (e.key === 'ArrowLeft')  { e.preventDefault(); tabs[(i-1+tabs.length) % tabs.length].focus(); tabs[(i-1+tabs.length) % tabs.length].click(); }
+            });
+        });
+
+        document.getElementById('searchBox').addEventListener('input', applyFilters);
+
         function escapeHTML(str) {
-            return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+            return String(str).replace(/[&<>'"]/g, t => ({ '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;' }[t]));
         }
 
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            event.target.classList.add('active');
-            document.getElementById(tabId).classList.add('active');
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.tab-btn[data-tab]').forEach(b => {
+                b.classList.toggle('active', b === btn);
+                b.setAttribute('aria-selected', b === btn ? 'true' : 'false');
+            });
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === tabId));
         }
 
         function readFileAsArrayBuffer(file) {
@@ -159,180 +274,312 @@
             });
         }
 
-        async function handleFiles(files) {
-            const validFiles = Array.from(files).filter(f => f.name.endsWith('.docx'));
-            if (validFiles.length === 0) { alert('請上傳 .docx 格式的檔案'); return; }
+        // Hash author name to a stable HSL color
+        function colorForAuthor(name) {
+            if (authorColors.has(name)) return authorColors.get(name);
+            let h = 0;
+            for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+            const hue = h % 360;
+            const color = { bg: `hsl(${hue} 65% 92%)`, fg: `hsl(${hue} 55% 30%)`, border: `hsl(${hue} 55% 50%)` };
+            authorColors.set(name, color);
+            return color;
+        }
 
-            document.getElementById('uploadSection').style.display = 'none';
-            statusDiv.textContent = `正在深度分析 ${validFiles.length} 份檔案，請稍候...`;
-            statusDiv.style.color = 'orange';
+        async function handleFiles(files) {
+            const allDocx = Array.from(files).filter(f => f.name.endsWith('.docx'));
+            const validFiles = allDocx.filter(f => !processedFileNames.has(f.name));
+            const skipped = allDocx.length - validFiles.length;
+
+            if (allDocx.length === 0) { setStatus('請上傳 .docx 格式的檔案', 'red'); return; }
+            if (validFiles.length === 0) { setStatus(`所有檔案已處理過 (略過 ${skipped} 份重複檔案)`, 'orange'); return; }
+
+            document.getElementById('uploadSection').classList.add('hidden');
+            setStatus(`正在深度分析 ${validFiles.length} 份檔案...`, 'orange', true);
 
             try {
-                combinedRevisionsMap.clear();
-                orderedParagraphIds = [];
-                baseFileName = validFiles[0].name.replace('.docx', '');
+                if (processedFileNames.size === 0) {
+                    baseFileName = validFiles[0].name.replace(/\.docx$/i, '');
+                }
 
                 for (let file of validFiles) {
                     const arrayBuffer = await readFileAsArrayBuffer(file);
                     const docxZip = new PizZip(arrayBuffer);
-                    const docXml = new DOMParser().parseFromString(docxZip.file("word/document.xml").asText(), "application/xml");
+                    const docXmlFile = docxZip.file("word/document.xml");
+                    if (!docXmlFile) throw new Error(`${file.name} 缺少 document.xml`);
+                    const docXml = new DOMParser().parseFromString(docXmlFile.asText(), "application/xml");
                     const paragraphs = docXml.getElementsByTagName('w:p');
 
                     let pIndex = 0;
                     for (let pNode of paragraphs) {
                         const revData = extractRevisions(pNode);
-                        const paraId = pNode.getAttribute("w14:paraId") || pNode.getAttribute("w:rsidR") || `fallback_idx_${pIndex}`;
-                        
+                        const paraId = pNode.getAttribute("w14:paraId")
+                                    || pNode.getAttribute("w:rsidR")
+                                    || `pos_${pIndex}`;
+
                         if (!combinedRevisionsMap.has(paraId)) {
-                            // 精準抓取未修改時的原始純文字，供重構文件使用
-                            let baseText = "";
-                            if (revData) {
-                                baseText = revData.before;
-                            } else {
-                                const tNodes = pNode.getElementsByTagName("w:t");
-                                for (let i = 0; i < tNodes.length; i++) baseText += tNodes[i].textContent;
-                            }
-                            
+                            let baseText = revData ? revData.before : plainText(pNode);
                             combinedRevisionsMap.set(paraId, { baseBefore: baseText, revisions: [] });
-                            orderedParagraphIds.push(paraId); 
+                            orderedParagraphIds.push(paraId);
                         }
 
-                        combinedRevisionsMap.get(paraId).revisions.push({ 
-                            docName: file.name, 
-                            data: revData, 
-                            hasRev: revData !== null 
+                        combinedRevisionsMap.get(paraId).revisions.push({
+                            docName: file.name,
+                            data: revData,
+                            hasRev: revData !== null
                         });
-                        
+
                         pIndex++;
                     }
+                    processedFileNames.add(file.name);
                 }
-                
-                renderTable(combinedRevisionsMap, orderedParagraphIds);
-                
-                statusDiv.textContent = `解析完成！共處理了 ${validFiles.length} 份檔案。`;
-                statusDiv.style.color = 'green';
+
+                renderTable();
+                renderStats();
+                renderFileList();
+                applyFilters();
+
+                const msg = skipped > 0
+                    ? `解析完成！共 ${processedFileNames.size} 份檔案 (本次略過 ${skipped} 份重複)`
+                    : `解析完成！共處理 ${processedFileNames.size} 份檔案`;
+                setStatus(msg, 'green');
                 document.getElementById('resultSection').style.display = 'block';
+                dropZone.classList.add('compact');
+                document.getElementById('uploadSection').classList.remove('hidden');
 
             } catch (err) {
                 console.error(err);
-                statusDiv.textContent = '解析檔案時發生錯誤。請確認檔案皆為標準 Word 檔。';
-                statusDiv.style.color = 'red';
+                setStatus(`解析錯誤：${err.message || '請確認檔案皆為標準 Word 檔'}`, 'red');
+                document.getElementById('uploadSection').classList.remove('hidden');
             }
         }
 
+        function setStatus(text, color, spinner = false) {
+            statusDiv.style.color = color;
+            statusDiv.innerHTML = (spinner ? '<span class="spinner"></span>' : '') + escapeHTML(text);
+        }
+
+        function plainText(pNode) {
+            // Extract concatenated visible text from <w:t> nodes (ignores deleted text)
+            const tNodes = pNode.getElementsByTagName("w:t");
+            let s = "";
+            for (let i = 0; i < tNodes.length; i++) s += tNodes[i].textContent;
+            return s;
+        }
+
         function extractRevisions(pNode) {
-            let before = "", after = "", visualAfter = "", authors = new Set(), notes = [], hasRev = false;
-            
+            let before = "", after = "", visualAfter = "";
+            const authors = new Set();
+            const notes = [];
+            let hasRev = false;
+
             function walk(node, inIns, inDel) {
                 if (node.nodeType !== 1) return;
                 const tag = node.tagName;
-                if (tag === "w:ins") {
-                    hasRev = true; authors.add(node.getAttribute("w:author") || "未知");
-                    let txt = Array.from(node.getElementsByTagName("w:t")).map(n => n.textContent).join("");
-                    if (txt) notes.push(`<span class="ins-badge" style="background-color: #2ecc71; color: white; padding: 2px 4px; border-radius: 2px; font-size: 12px;">新增</span> ${escapeHTML(txt)}`);
+
+                if (tag === "w:ins" || tag === "w:moveTo") {
+                    hasRev = true;
+                    authors.add(node.getAttribute("w:author") || "未知");
+                    const txt = Array.from(node.getElementsByTagName("w:t")).map(n => n.textContent).join("");
+                    if (txt) {
+                        const label = tag === "w:moveTo" ? '<span class="badge move-badge">移入</span>' : '<span class="badge ins-badge">新增</span>';
+                        notes.push(`${label} ${escapeHTML(txt)}`);
+                    }
                     Array.from(node.childNodes).forEach(c => walk(c, true, false));
-                } else if (tag === "w:del") {
-                    hasRev = true; authors.add(node.getAttribute("w:author") || "未知");
-                    let txt = Array.from(node.getElementsByTagName("w:delText")).map(n => n.textContent).join("");
-                    if (txt) notes.push(`<span class="del-badge" style="background-color: #e74c3c; color: white; padding: 2px 4px; border-radius: 2px; font-size: 12px;">刪除</span> ${escapeHTML(txt)}`);
+                } else if (tag === "w:del" || tag === "w:moveFrom") {
+                    hasRev = true;
+                    authors.add(node.getAttribute("w:author") || "未知");
+                    const txt = Array.from(node.getElementsByTagName("w:delText")).map(n => n.textContent).join("")
+                             || Array.from(node.getElementsByTagName("w:t")).map(n => n.textContent).join("");
+                    if (txt) {
+                        const label = tag === "w:moveFrom" ? '<span class="badge move-badge">移出</span>' : '<span class="badge del-badge">刪除</span>';
+                        notes.push(`${label} ${escapeHTML(txt)}`);
+                    }
                     Array.from(node.childNodes).forEach(c => walk(c, false, true));
                 } else if (tag === "w:rPrChange" || tag === "w:pPrChange") {
-                    hasRev = true; authors.add(node.getAttribute("w:author") || "未知");
-                    notes.push(`<span class="fmt-badge" style="background-color: #f39c12; color: white; padding: 2px 4px; border-radius: 2px; font-size: 12px;">格式</span>`);
-                    Array.from(node.childNodes).forEach(c => walk(c, inIns, inDel));
+                    hasRev = true;
+                    authors.add(node.getAttribute("w:author") || "未知");
+                    notes.push('<span class="badge fmt-badge">格式</span>');
+                    // Don't recurse into change-tracking metadata containers.
                 } else if (tag === "w:t") {
                     const t = node.textContent;
                     if (inIns) {
                         after += t;
-                        visualAfter += `<span style="color: #27ae60; text-decoration: underline; font-weight: bold;">${escapeHTML(t)}</span>`;
+                        visualAfter += `<span class="ins-text">${escapeHTML(t)}</span>`;
                     } else if (!inDel) {
-                        before += t; 
+                        before += t;
                         after += t;
                         visualAfter += escapeHTML(t);
                     }
                 } else if (tag === "w:delText") {
-                    const t = node.textContent;
                     if (inDel) {
+                        const t = node.textContent;
                         before += t;
-                        visualAfter += `<del style="color: #e74c3c; text-decoration: line-through;">${escapeHTML(t)}</del>`;
+                        visualAfter += `<del>${escapeHTML(t)}</del>`;
                     }
                 } else {
                     Array.from(node.childNodes).forEach(c => walk(c, inIns, inDel));
                 }
             }
             walk(pNode, false, false);
-            return hasRev ? { authors: [...authors].join(", "), before, after, visualAfter, note: notes.join("<br>") } : null;
+
+            return hasRev
+                ? { authors: [...authors].join(", "), authorList: [...authors], before, after, visualAfter, note: notes.join("<br>") }
+                : null;
         }
 
         // ==========================================
-        // 渲染表格
+        // Render
         // ==========================================
-        function renderTable(combinedMap, orderedIds) {
+        function renderFileList() {
+            fileListDiv.innerHTML = [...processedFileNames]
+                .map(n => `<span class="file-chip">${escapeHTML(n)}</span>`).join("");
+        }
+
+        function renderStats() {
+            const authorCount = new Map();
+            let modifiedParagraphs = 0;
+            let totalRevisions = 0;
+            for (const paraId of orderedParagraphIds) {
+                const data = combinedRevisionsMap.get(paraId);
+                const modified = data.revisions.filter(r => r.hasRev);
+                if (modified.length > 0) modifiedParagraphs++;
+                modified.forEach(r => {
+                    totalRevisions++;
+                    r.data.authorList.forEach(a => authorCount.set(a, (authorCount.get(a) || 0) + 1));
+                });
+            }
+
+            const sortedAuthors = [...authorCount.entries()].sort((a, b) => b[1] - a[1]);
+
+            const chipsHTML = sortedAuthors.length === 0
+                ? '<span style="color:var(--c-muted)">尚無修訂</span>'
+                : sortedAuthors.map(([name, count]) => {
+                    const c = colorForAuthor(name);
+                    return `<span class="author-chip" data-author="${escapeHTML(name)}"
+                              style="background:${c.bg};color:${c.fg};border-color:${c.border};">
+                              ${escapeHTML(name)}<span class="count">${count}</span>
+                            </span>`;
+                  }).join("");
+
+            document.getElementById('statsBar').innerHTML = `
+                <div class="stat"><span class="stat-num">${processedFileNames.size}</span><span class="stat-label">檔案數</span></div>
+                <div class="stat-divider"></div>
+                <div class="stat"><span class="stat-num">${modifiedParagraphs}</span><span class="stat-label">修改段落</span></div>
+                <div class="stat-divider"></div>
+                <div class="stat"><span class="stat-num">${totalRevisions}</span><span class="stat-label">修訂筆數</span></div>
+                <div class="stat-divider"></div>
+                <div class="author-chips" id="authorChips">${chipsHTML}</div>
+            `;
+
+            document.querySelectorAll('#authorChips .author-chip').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    const author = chip.dataset.author;
+                    activeAuthorFilter = (activeAuthorFilter === author) ? null : author;
+                    document.querySelectorAll('#authorChips .author-chip').forEach(c => {
+                        c.classList.toggle('dim', activeAuthorFilter !== null && c.dataset.author !== activeAuthorFilter);
+                    });
+                    applyFilters();
+                });
+            });
+        }
+
+        function renderTable() {
             const tbody = document.getElementById('resultBody');
             tbody.innerHTML = '';
             let globalCount = 0;
+            let groupIndex = 0;
 
-            for (let paraId of orderedIds) {
-                const paragraphData = combinedMap.get(paraId);
+            for (let paraId of orderedParagraphIds) {
+                const paragraphData = combinedRevisionsMap.get(paraId);
                 const modifiedRevs = paragraphData.revisions.filter(r => r.hasRev);
-                
+
                 if (modifiedRevs.length > 0) {
+                    groupIndex++;
                     modifiedRevs.forEach((rev, index) => {
                         globalCount++;
                         const tr = document.createElement('tr');
+                        if (index === 0 && groupIndex > 1) tr.classList.add('row-group-start');
                         if (index > 0) tr.classList.add('repeated-para-row');
+                        tr.dataset.authors = rev.data.authorList.join("|");
+                        tr.dataset.searchText = (rev.data.after + " " + paragraphData.baseBefore).toLowerCase();
+
+                        const tags = rev.data.authorList.map(a => {
+                            const c = colorForAuthor(a);
+                            return `<span class="author-tag" style="background:${c.bg};color:${c.fg};">${escapeHTML(a)}</span>`;
+                        }).join(" ");
+
+                        const noteText = rev.data.note.replace(/<[^>]+>/g, '').trim();
 
                         tr.innerHTML = `
-                            <td style="border: 1px solid #ddd; padding: 8px;"><b>${escapeHTML(rev.data.authors)}</b><br><small style="color:#7f8c8d;">(#${globalCount})</small></td>
-                            <td style="border: 1px solid #ddd; padding: 8px;" data-csv-value="${escapeHTML(rev.data.after)}">${rev.data.visualAfter}</td>
-                            <td style="border: 1px solid #ddd; padding: 8px;">${escapeHTML(paragraphData.baseBefore)}</td>
-                            <td style="border: 1px solid #ddd; padding: 8px;">${rev.data.note}</td>
+                            <td><div class="author-cell">${tags}<span class="row-num">#${globalCount}</span></div></td>
+                            <td data-csv-value="${escapeHTML(rev.data.after)}">${rev.data.visualAfter}</td>
+                            <td data-csv-value="${escapeHTML(paragraphData.baseBefore)}">${escapeHTML(paragraphData.baseBefore)}</td>
+                            <td data-csv-value="${escapeHTML(noteText)}">${rev.data.note}</td>
                         `;
                         tbody.appendChild(tr);
                     });
                 }
             }
+
+            if (globalCount === 0) {
+                tbody.innerHTML = `<tr class="empty-row"><td colspan="4">這些檔案中沒有偵測到任何追蹤修訂內容。</td></tr>`;
+            }
+        }
+
+        function applyFilters() {
+            const q = document.getElementById('searchBox').value.trim().toLowerCase();
+            document.querySelectorAll('#resultBody tr').forEach(tr => {
+                if (tr.classList.contains('empty-row')) return;
+                const authors = (tr.dataset.authors || "").split("|");
+                const matchAuthor = !activeAuthorFilter || authors.includes(activeAuthorFilter);
+                const matchText = !q || (tr.dataset.searchText || "").includes(q);
+                tr.style.display = (matchAuthor && matchText) ? '' : 'none';
+            });
         }
 
         // ==========================================
-        // 全新功能：從 HTML 重構出完整的視覺化 Word 文件
+        // Reconstructed visual doc
         // ==========================================
         function exportToVisualDoc() {
             let htmlContent = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
             <head><meta charset='utf-8'><title>重構合併文件</title>
             <style>
                 body { font-family: 'Microsoft JhengHei', 'Segoe UI', Arial, sans-serif; font-size: 11pt; line-height: 1.5; }
-                .author-label { font-weight: bold; color: #fff; background-color: #8e44ad; padding: 2px 6px; border-radius: 4px; font-size: 10pt; margin-right: 8px; }
+                .author-label { font-weight: bold; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 10pt; margin-right: 8px; }
                 p { margin-bottom: 12px; text-align: justify; }
                 .rev-block { border-left: 3px solid #8e44ad; background-color: #f8f9fa; padding: 8px 10px; margin-bottom: 8px; }
-                .doc-title { text-align: center; color: #2c3e50; font-size: 16pt; font-weight: bold; margin-bottom: 20px; }
+                .doc-title { text-align: center; color: #2c3e50; font-size: 16pt; font-weight: bold; margin-bottom: 6px; }
+                .doc-meta { text-align: center; color: #7f8c8d; font-size: 9pt; margin-bottom: 18px; }
+                ins, .ins-text { color: #27ae60; text-decoration: underline; font-weight: bold; }
+                del { color: #e74c3c; text-decoration: line-through; }
             </style></head><body>
             <div class="doc-title">多人修訂重構文件：${escapeHTML(baseFileName)}</div>
-            <hr style="margin-bottom: 20px;">
-            `;
+            <div class="doc-meta">來源檔案：${[...processedFileNames].map(escapeHTML).join(" / ")}</div>
+            <hr>`;
 
-            // 按照原文件的段落順序重建內容
             for (let paraId of orderedParagraphIds) {
                 const paraData = combinedRevisionsMap.get(paraId);
                 const modifiedRevs = paraData.revisions.filter(r => r.hasRev);
 
                 if (modifiedRevs.length > 0) {
-                    // 該段落有被修改：將各作者的版本展開
                     modifiedRevs.forEach(rev => {
-                        htmlContent += `<div class="rev-block"><span class="author-label">[${escapeHTML(rev.data.authors)}]</span> ${rev.data.visualAfter}</div>`;
+                        const firstAuthor = rev.data.authorList[0] || "未知";
+                        const c = colorForAuthor(firstAuthor);
+                        htmlContent += `<div class="rev-block" style="border-left-color:${c.border};">
+                            <span class="author-label" style="background-color:${c.border};">[${escapeHTML(rev.data.authors)}]</span>
+                            ${rev.data.visualAfter}
+                        </div>`;
                     });
                 } else {
-                    // 該段落無人修改：印出原始文字
                     let text = escapeHTML(paraData.baseBefore);
-                    if (!text.trim()) text = "&nbsp;"; // 保留空行
+                    if (!text.trim()) text = "&nbsp;";
                     htmlContent += `<p>${text}</p>`;
                 }
             }
 
             htmlContent += "</body></html>";
 
-            // 封裝並觸發下載
-            const blob = new Blob(['\ufeff', htmlContent], { type: 'application/msword' });
+            const blob = new Blob(['﻿', htmlContent], { type: 'application/msword' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
             link.download = `${baseFileName}_重構合併版.doc`;
@@ -340,13 +587,13 @@
         }
 
         // ==========================================
-        // 其他表格匯出功能
+        // Table exports
         // ==========================================
         function exportToWordTable() {
             const preHtml = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
             <head><meta charset='utf-8'><title>合併修訂對照表</title>
-            <style> table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid black; padding: 8px; text-align: left; vertical-align: top; } th { background-color: #D3D3D3; } </style></head><body>
-            <h2 style="text-align:center;">多人追蹤修訂對照表</h2>`;
+            <style> table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid black; padding: 8px; text-align: left; vertical-align: top; } th { background-color: #D3D3D3; } ins, .ins-text { color: #27ae60; text-decoration: underline; font-weight: bold; } del { color: #e74c3c; text-decoration: line-through; } .badge { color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.78em; margin-right: 4px; } .ins-badge { background-color: #27ae60; } .del-badge { background-color: #e74c3c; } .fmt-badge { background-color: #f39c12; } .move-badge { background-color: #1abc9c; } </style></head><body>
+            <h2 style="text-align:center;">多人追蹤修訂對照表 — ${escapeHTML(baseFileName)}</h2>`;
             const html = preHtml + document.getElementById('revisionTable').outerHTML + "</body></html>";
             const link = document.createElement('a');
             link.href = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(html);
@@ -357,8 +604,8 @@
         function exportToHTML() {
             const tableHTML = document.getElementById('revisionTable').outerHTML;
             const style = document.querySelector('style').innerHTML;
-            const fullHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${style}</style></head>
-                              <body><div class="container"><h2>多人追蹤修訂對照表</h2>${tableHTML}</div></body></html>`;
+            const fullHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escapeHTML(baseFileName)} 修訂對照表</title><style>${style}</style></head>
+                              <body><div class="container"><h2>多人追蹤修訂對照表 — ${escapeHTML(baseFileName)}</h2><div class="table-wrap">${tableHTML}</div></div></body></html>`;
             const link = document.createElement("a");
             link.href = URL.createObjectURL(new Blob([fullHTML], { type: 'text/html' }));
             link.download = `${baseFileName}_修訂對照表.html`;
@@ -367,12 +614,14 @@
 
         function exportToCSV() {
             const rows = document.querySelectorAll("#revisionTable tr");
-            let csv = "\uFEFF";
-            rows.forEach(row => { 
-                csv += Array.from(row.querySelectorAll("th, td")).map(c => {
-                    let val = c.getAttribute('data-csv-value') !== null ? c.getAttribute('data-csv-value') : c.innerText;
+            let csv = "﻿";
+            rows.forEach(row => {
+                const cells = Array.from(row.querySelectorAll("th, td")).map(c => {
+                    const v = c.getAttribute('data-csv-value');
+                    const val = v !== null ? v : c.innerText.replace(/\s+/g, ' ').trim();
                     return `"${val.replace(/"/g, '""')}"`;
-                }).join(",") + "\r\n"; 
+                });
+                csv += cells.join(",") + "\r\n";
             });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
@@ -380,7 +629,10 @@
             link.click();
         }
 
-        function resetUI() { location.reload(); }
+        function resetUI() {
+            if (processedFileNames.size > 0 && !confirm('確定要清除所有已解析的檔案嗎？')) return;
+            location.reload();
+        }
     </script>
 </body>
 </html>
