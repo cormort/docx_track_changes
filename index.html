@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Word 多人修訂合併神器</title>
+    <title>Word 多人修訂合併神器 / Word Multi-Author Revision Merger</title>
     <style>
         :root {
             --c-bg: #f4f7f9;
@@ -27,12 +27,22 @@
             line-height: 1.6; margin: 0; padding: 20px; background-color: var(--c-bg); color: #333;
         }
         .container {
+            position: relative;
             max-width: 1280px; margin: 20px auto; padding: 28px;
             background-color: var(--c-card);
             border-radius: var(--radius); box-shadow: var(--shadow-md);
         }
         h1 { color: var(--c-text); text-align: center; border-bottom: 2px solid var(--c-primary); padding-bottom: 12px; margin: 0 0 24px; }
         .subtitle { text-align: center; color: var(--c-muted); margin-top: -16px; margin-bottom: 24px; font-size: 0.95em; }
+
+        .lang-toggle {
+            position: absolute; top: 18px; right: 18px;
+            background: #ecf0f1; color: #555; border: 1px solid var(--c-border);
+            border-radius: 16px; padding: 5px 12px; font-size: 13px; font-weight: 600;
+            cursor: pointer; font-family: inherit; transition: all 0.15s;
+        }
+        .lang-toggle:hover { background: var(--c-primary); color: white; border-color: var(--c-primary); }
+        .lang-toggle:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
 
         /* Upload */
         #uploadSection { margin-bottom: 20px; }
@@ -103,7 +113,6 @@
             border-radius: 6px; font-size: 14px; font-family: inherit;
         }
         .toolbar .search-box:focus { outline: none; border-color: var(--c-primary); box-shadow: 0 0 0 3px rgba(52,152,219,.15); }
-        .toolbar-spacer { flex: 1; }
         .btn {
             padding: 8px 14px; border: none; border-radius: 5px; cursor: pointer; font-weight: 600;
             font-family: inherit; font-size: 14px; display: inline-flex; align-items: center; gap: 5px;
@@ -148,7 +157,8 @@
         .hero-box p { color: #555; font-size: 1.05em; }
 
         @media (max-width: 720px) {
-            .container { padding: 16px; margin: 8px; }
+            .container { padding: 16px; margin: 8px; padding-top: 48px; }
+            .lang-toggle { top: 12px; right: 12px; }
             .tabs-row { flex-wrap: wrap; }
             .tab-actions { margin-left: 0; width: 100%; justify-content: flex-end; }
             th, td { padding: 8px; font-size: 0.9em; }
@@ -160,14 +170,15 @@
 <body>
 
     <div class="container">
-        <h1>Word 多人修訂合併神器</h1>
-        <p class="subtitle">將多份來自同一原稿的 .docx 修訂版本合併為一份對照表 / 重構文件</p>
+        <button class="lang-toggle" id="langToggle" aria-label="Switch language">🌐 EN</button>
+        <h1 data-i18n="title">Word 多人修訂合併神器</h1>
+        <p class="subtitle" data-i18n="subtitle">將多份來自同一原稿的 .docx 修訂版本合併為一份對照表 / 重構文件</p>
 
         <div id="uploadSection">
             <div id="fileDropZone" onclick="document.getElementById('wordFiles').click();" role="button" tabindex="0"
                  onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('wordFiles').click();}">
-                將 <b>多個</b> .docx 檔案拖曳至此處，或點擊選擇檔案
-                <br><span style="font-size:0.85em; color:#888;">(請確保上傳的檔案皆源自同一份原始文件)</span>
+                <span data-i18n-html="dropMain">將 <b>多個</b> .docx 檔案拖曳至此處，或點擊選擇檔案</span>
+                <br><span style="font-size:0.85em; color:#888;" data-i18n="dropHint">(請確保上傳的檔案皆源自同一份原始文件)</span>
                 <input type="file" id="wordFiles" accept=".docx" multiple class="hidden">
             </div>
         </div>
@@ -175,33 +186,33 @@
         <div id="status"></div>
         <div id="fileList"></div>
 
-        <div id="resultSection" role="region" aria-label="解析結果">
+        <div id="resultSection" role="region" aria-label="Results">
             <div class="stats-bar" id="statsBar"></div>
 
             <div class="tabs-row" role="tablist">
-                <button class="tab-btn active" role="tab" aria-selected="true" data-tab="tab-table">👁️ 檢視與匯出表格</button>
-                <button class="tab-btn" role="tab" aria-selected="false" data-tab="tab-doc">📄 重構合併文件</button>
+                <button class="tab-btn active" role="tab" aria-selected="true" data-tab="tab-table" data-i18n="tabTable">👁️ 檢視與匯出表格</button>
+                <button class="tab-btn" role="tab" aria-selected="false" data-tab="tab-doc" data-i18n="tabDoc">📄 重構合併文件</button>
                 <div class="tab-actions">
-                    <button class="btn btn-ghost" onclick="document.getElementById('wordFiles').click()">➕ 加入更多檔案</button>
-                    <button class="btn btn-reset" onclick="resetUI()">🔄 全部清除</button>
+                    <button class="btn btn-ghost" onclick="document.getElementById('wordFiles').click()" data-i18n="addFiles">➕ 加入更多檔案</button>
+                    <button class="btn btn-reset" onclick="resetUI()" data-i18n="resetAll">🔄 全部清除</button>
                 </div>
             </div>
 
             <div id="tab-table" class="tab-content active" role="tabpanel">
                 <div class="toolbar">
-                    <input type="text" class="search-box" id="searchBox" placeholder="🔍 在修訂內容中搜尋..." aria-label="搜尋">
-                    <button class="btn btn-word" onclick="exportToWordTable()">📝 匯出 Word</button>
-                    <button class="btn btn-html" onclick="exportToHTML()">🌐 匯出 HTML</button>
-                    <button class="btn btn-csv" onclick="exportToCSV()">📊 匯出 CSV</button>
+                    <input type="text" class="search-box" id="searchBox" data-i18n-placeholder="searchPlaceholder" placeholder="🔍 在修訂內容中搜尋..." aria-label="Search">
+                    <button class="btn btn-word" onclick="exportToWordTable()" data-i18n="exportWord">📝 匯出 Word</button>
+                    <button class="btn btn-html" onclick="exportToHTML()" data-i18n="exportHTML">🌐 匯出 HTML</button>
+                    <button class="btn btn-csv" onclick="exportToCSV()" data-i18n="exportCSV">📊 匯出 CSV</button>
                 </div>
                 <div class="table-wrap">
                     <table id="revisionTable">
                         <thead>
                             <tr>
-                                <th style="width:15%">作者 + 序號</th>
-                                <th style="width:32%">追蹤修訂後的段落文字 (含增刪標記)</th>
-                                <th style="width:28%">追蹤修訂前的原始段落</th>
-                                <th style="width:25%">追蹤修正的說明</th>
+                                <th style="width:15%" data-i18n="thAuthor">作者 + 序號</th>
+                                <th style="width:32%" data-i18n="thAfter">追蹤修訂後的段落文字 (含增刪標記)</th>
+                                <th style="width:28%" data-i18n="thBefore">追蹤修訂前的原始段落</th>
+                                <th style="width:25%" data-i18n="thNote">追蹤修正的說明</th>
                             </tr>
                         </thead>
                         <tbody id="resultBody"></tbody>
@@ -211,16 +222,148 @@
 
             <div id="tab-doc" class="tab-content" role="tabpanel">
                 <div class="hero-box">
-                    <h3>擺脫 XML 衝突！全新重構乾淨的合併文件</h3>
-                    <p>此功能避開了 Word 底層極易損毀的追蹤修訂機制，改為直接讀取 HTML 視覺資料。<br><b>系統將以原文件的段落順序，重新生成一份完整且不會跑版的 Word 文件。</b></p>
-                    <button class="btn btn-primary" onclick="exportToVisualDoc()">📄 下載重構的合併文件 (.doc)</button>
-                    <p style="font-size: 0.9em; color: var(--c-muted);">※ 此檔案保留了文件的原始閱讀動線，未修改的段落會保持原樣；有多人修改的段落，會自動分列並用顏色標示作者與增刪內容。</p>
+                    <h3 data-i18n="heroTitle">擺脫 XML 衝突！全新重構乾淨的合併文件</h3>
+                    <p data-i18n-html="heroDesc">此功能避開了 Word 底層極易損毀的追蹤修訂機制，改為直接讀取 HTML 視覺資料。<br><b>系統將以原文件的段落順序，重新生成一份完整且不會跑版的 Word 文件。</b></p>
+                    <button class="btn btn-primary" onclick="exportToVisualDoc()" data-i18n="heroBtn">📄 下載重構的合併文件 (.doc)</button>
+                    <p style="font-size: 0.9em; color: var(--c-muted);" data-i18n="heroFoot">※ 此檔案保留了文件的原始閱讀動線，未修改的段落會保持原樣；有多人修改的段落，會自動分列並用顏色標示作者與增刪內容。</p>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
+        // ==========================================
+        // i18n
+        // ==========================================
+        const I18N = {
+            zh: {
+                title: 'Word 多人修訂合併神器',
+                subtitle: '將多份來自同一原稿的 .docx 修訂版本合併為一份對照表 / 重構文件',
+                dropMain: '將 <b>多個</b> .docx 檔案拖曳至此處，或點擊選擇檔案',
+                dropHint: '(請確保上傳的檔案皆源自同一份原始文件)',
+                tabTable: '👁️ 檢視與匯出表格',
+                tabDoc: '📄 重構合併文件',
+                addFiles: '➕ 加入更多檔案',
+                resetAll: '🔄 全部清除',
+                searchPlaceholder: '🔍 在修訂內容中搜尋...',
+                exportWord: '📝 匯出 Word',
+                exportHTML: '🌐 匯出 HTML',
+                exportCSV: '📊 匯出 CSV',
+                thAuthor: '作者 + 序號',
+                thAfter: '追蹤修訂後的段落文字 (含增刪標記)',
+                thBefore: '追蹤修訂前的原始段落',
+                thNote: '追蹤修正的說明',
+                heroTitle: '擺脫 XML 衝突！全新重構乾淨的合併文件',
+                heroDesc: '此功能避開了 Word 底層極易損毀的追蹤修訂機制，改為直接讀取 HTML 視覺資料。<br><b>系統將以原文件的段落順序，重新生成一份完整且不會跑版的 Word 文件。</b>',
+                heroBtn: '📄 下載重構的合併文件 (.doc)',
+                heroFoot: '※ 此檔案保留了文件的原始閱讀動線，未修改的段落會保持原樣；有多人修改的段落，會自動分列並用顏色標示作者與增刪內容。',
+                statFiles: '檔案數',
+                statModified: '修改段落',
+                statRevisions: '修訂筆數',
+                noRevisions: '尚無修訂',
+                emptyState: '這些檔案中沒有偵測到任何追蹤修訂內容。',
+                badgeIns: '新增',
+                badgeDel: '刪除',
+                badgeFmt: '格式',
+                badgeMoveIn: '移入',
+                badgeMoveOut: '移出',
+                statusUploadDocx: '請上傳 .docx 格式的檔案',
+                statusAllDuplicate: '所有檔案已處理過 (略過 {n} 份重複檔案)',
+                statusAnalyzing: '正在深度分析 {n} 份檔案...',
+                statusMissingXml: '{f} 缺少 document.xml',
+                statusError: '解析錯誤：{m}',
+                statusErrorDefault: '請確認檔案皆為標準 Word 檔',
+                statusDone: '解析完成！共處理 {n} 份檔案',
+                statusDoneSkip: '解析完成！共 {n} 份檔案 (本次略過 {s} 份重複)',
+                confirmReset: '確定要清除所有已解析的檔案嗎？',
+                docTitle: '多人修訂重構文件：{name}',
+                docMeta: '來源檔案：{files}',
+                wordTableHeading: '多人追蹤修訂對照表 — {name}',
+                unknownAuthor: '未知',
+                suffixReconstructed: '_重構合併版',
+                suffixTable: '_修訂對照表',
+                toggleLabel: '🌐 EN'
+            },
+            en: {
+                title: 'Word Multi-Author Revision Merger',
+                subtitle: 'Merge multiple revised .docx versions of the same source into a comparison table or a reconstructed document',
+                dropMain: 'Drop <b>multiple</b> .docx files here, or click to select',
+                dropHint: '(All files must originate from the same source document)',
+                tabTable: '👁️ Comparison Table',
+                tabDoc: '📄 Reconstructed Document',
+                addFiles: '➕ Add more files',
+                resetAll: '🔄 Reset',
+                searchPlaceholder: '🔍 Search revision content...',
+                exportWord: '📝 Export Word',
+                exportHTML: '🌐 Export HTML',
+                exportCSV: '📊 Export CSV',
+                thAuthor: 'Author + #',
+                thAfter: 'Revised paragraph (with markup)',
+                thBefore: 'Original paragraph',
+                thNote: 'Revision details',
+                heroTitle: 'Bypass XML conflicts — get a clean reconstructed merge',
+                heroDesc: 'This feature sidesteps Word\'s fragile native track-change machinery and reads the HTML view directly.<br><b>The system rebuilds a clean Word document in the original paragraph order — no broken layouts.</b>',
+                heroBtn: '📄 Download reconstructed merged document (.doc)',
+                heroFoot: '※ The file preserves the original reading flow. Unmodified paragraphs stay as-is; paragraphs with multiple revisions are split into author-colored blocks.',
+                statFiles: 'Files',
+                statModified: 'Modified paragraphs',
+                statRevisions: 'Revisions',
+                noRevisions: 'No revisions',
+                emptyState: 'No tracked changes were detected in these files.',
+                badgeIns: 'Insert',
+                badgeDel: 'Delete',
+                badgeFmt: 'Format',
+                badgeMoveIn: 'Move in',
+                badgeMoveOut: 'Move out',
+                statusUploadDocx: 'Please upload .docx files',
+                statusAllDuplicate: 'All files were already processed (skipped {n} duplicate)',
+                statusAnalyzing: 'Analyzing {n} file(s)...',
+                statusMissingXml: '{f} is missing document.xml',
+                statusError: 'Parse error: {m}',
+                statusErrorDefault: 'Please ensure files are standard Word documents',
+                statusDone: 'Done! Processed {n} file(s)',
+                statusDoneSkip: 'Done! {n} total file(s) ({s} duplicate skipped)',
+                confirmReset: 'Clear all parsed files?',
+                docTitle: 'Multi-author reconstructed document: {name}',
+                docMeta: 'Source files: {files}',
+                wordTableHeading: 'Multi-Author Revision Comparison — {name}',
+                unknownAuthor: 'Unknown',
+                suffixReconstructed: '_reconstructed',
+                suffixTable: '_revisions_table',
+                toggleLabel: '🌐 中'
+            }
+        };
+
+        const STORAGE_LANG_KEY = 'docx-merger-lang';
+        let currentLang = (() => {
+            const saved = localStorage.getItem(STORAGE_LANG_KEY);
+            if (saved && I18N[saved]) return saved;
+            return navigator.language && navigator.language.toLowerCase().startsWith('zh') ? 'zh' : 'en';
+        })();
+
+        function t(key, params = {}) {
+            let s = (I18N[currentLang] && I18N[currentLang][key]) || I18N.zh[key] || key;
+            for (const k in params) s = s.replace(new RegExp(`\\{${k}\\}`, 'g'), params[k]);
+            return s;
+        }
+
+        function applyI18n() {
+            document.documentElement.lang = currentLang === 'zh' ? 'zh-Hant' : 'en';
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                el.textContent = t(el.dataset.i18n);
+            });
+            document.querySelectorAll('[data-i18n-html]').forEach(el => {
+                el.innerHTML = t(el.dataset.i18nHtml);
+            });
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                el.placeholder = t(el.dataset.i18nPlaceholder);
+            });
+            document.getElementById('langToggle').textContent = t('toggleLabel');
+        }
+
+        // ==========================================
+        // State
+        // ==========================================
         let combinedRevisionsMap = new Map();
         let orderedParagraphIds = [];
         let processedFileNames = new Set();
@@ -232,6 +375,7 @@
         const statusDiv = document.getElementById('status');
         const fileListDiv = document.getElementById('fileList');
         const dropZone = document.getElementById('fileDropZone');
+        let lastStatus = null; // { textKey, params, color, spinner }
 
         dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
         dropZone.addEventListener('dragleave', e => { e.preventDefault(); dropZone.classList.remove('dragover'); });
@@ -252,6 +396,19 @@
         });
 
         document.getElementById('searchBox').addEventListener('input', applyFilters);
+
+        document.getElementById('langToggle').addEventListener('click', () => {
+            currentLang = currentLang === 'zh' ? 'en' : 'zh';
+            localStorage.setItem(STORAGE_LANG_KEY, currentLang);
+            applyI18n();
+            // Re-render dynamic content that contains i18n strings
+            if (lastStatus) setStatus(lastStatus.textKey, lastStatus.color, lastStatus.spinner, lastStatus.params);
+            if (orderedParagraphIds.length > 0) {
+                renderTable();
+                renderStats();
+                applyFilters();
+            }
+        });
 
         function escapeHTML(str) {
             return String(str).replace(/[&<>'"]/g, t => ({ '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;' }[t]));
@@ -274,7 +431,6 @@
             });
         }
 
-        // Hash author name to a stable HSL color
         function colorForAuthor(name) {
             if (authorColors.has(name)) return authorColors.get(name);
             let h = 0;
@@ -285,16 +441,21 @@
             return color;
         }
 
+        // Localized author display name (replaces __unknown__ sentinel)
+        function displayAuthor(a) {
+            return a === '__unknown__' ? t('unknownAuthor') : a;
+        }
+
         async function handleFiles(files) {
             const allDocx = Array.from(files).filter(f => f.name.endsWith('.docx'));
             const validFiles = allDocx.filter(f => !processedFileNames.has(f.name));
             const skipped = allDocx.length - validFiles.length;
 
-            if (allDocx.length === 0) { setStatus('請上傳 .docx 格式的檔案', 'red'); return; }
-            if (validFiles.length === 0) { setStatus(`所有檔案已處理過 (略過 ${skipped} 份重複檔案)`, 'orange'); return; }
+            if (allDocx.length === 0) { setStatus('statusUploadDocx', 'red'); return; }
+            if (validFiles.length === 0) { setStatus('statusAllDuplicate', 'orange', false, { n: skipped }); return; }
 
             document.getElementById('uploadSection').classList.add('hidden');
-            setStatus(`正在深度分析 ${validFiles.length} 份檔案...`, 'orange', true);
+            setStatus('statusAnalyzing', 'orange', true, { n: validFiles.length });
 
             try {
                 if (processedFileNames.size === 0) {
@@ -305,7 +466,7 @@
                     const arrayBuffer = await readFileAsArrayBuffer(file);
                     const docxZip = new PizZip(arrayBuffer);
                     const docXmlFile = docxZip.file("word/document.xml");
-                    if (!docXmlFile) throw new Error(`${file.name} 缺少 document.xml`);
+                    if (!docXmlFile) throw new Error(t('statusMissingXml', { f: file.name }));
                     const docXml = new DOMParser().parseFromString(docXmlFile.asText(), "application/xml");
                     const paragraphs = docXml.getElementsByTagName('w:p');
 
@@ -338,28 +499,28 @@
                 renderFileList();
                 applyFilters();
 
-                const msg = skipped > 0
-                    ? `解析完成！共 ${processedFileNames.size} 份檔案 (本次略過 ${skipped} 份重複)`
-                    : `解析完成！共處理 ${processedFileNames.size} 份檔案`;
-                setStatus(msg, 'green');
+                if (skipped > 0) setStatus('statusDoneSkip', 'green', false, { n: processedFileNames.size, s: skipped });
+                else setStatus('statusDone', 'green', false, { n: processedFileNames.size });
+
                 document.getElementById('resultSection').style.display = 'block';
                 dropZone.classList.add('compact');
                 document.getElementById('uploadSection').classList.remove('hidden');
 
             } catch (err) {
                 console.error(err);
-                setStatus(`解析錯誤：${err.message || '請確認檔案皆為標準 Word 檔'}`, 'red');
+                setStatus('statusError', 'red', false, { m: err.message || t('statusErrorDefault') });
                 document.getElementById('uploadSection').classList.remove('hidden');
             }
         }
 
-        function setStatus(text, color, spinner = false) {
+        function setStatus(textKey, color, spinner = false, params = {}) {
+            lastStatus = { textKey, color, spinner, params };
             statusDiv.style.color = color;
+            const text = I18N[currentLang][textKey] !== undefined ? t(textKey, params) : textKey;
             statusDiv.innerHTML = (spinner ? '<span class="spinner"></span>' : '') + escapeHTML(text);
         }
 
         function plainText(pNode) {
-            // Extract concatenated visible text from <w:t> nodes (ignores deleted text)
             const tNodes = pNode.getElementsByTagName("w:t");
             let s = "";
             for (let i = 0; i < tNodes.length; i++) s += tNodes[i].textContent;
@@ -369,8 +530,12 @@
         function extractRevisions(pNode) {
             let before = "", after = "", visualAfter = "";
             const authors = new Set();
-            const notes = [];
+            const notes = []; // structured: {type: 'ins'|'del'|'fmt'|'moveIn'|'moveOut', text?: string}
             let hasRev = false;
+
+            function authorOf(node) {
+                return node.getAttribute("w:author") || "__unknown__";
+            }
 
             function walk(node, inIns, inDel) {
                 if (node.nodeType !== 1) return;
@@ -378,28 +543,21 @@
 
                 if (tag === "w:ins" || tag === "w:moveTo") {
                     hasRev = true;
-                    authors.add(node.getAttribute("w:author") || "未知");
+                    authors.add(authorOf(node));
                     const txt = Array.from(node.getElementsByTagName("w:t")).map(n => n.textContent).join("");
-                    if (txt) {
-                        const label = tag === "w:moveTo" ? '<span class="badge move-badge">移入</span>' : '<span class="badge ins-badge">新增</span>';
-                        notes.push(`${label} ${escapeHTML(txt)}`);
-                    }
+                    if (txt) notes.push({ type: tag === "w:moveTo" ? 'moveIn' : 'ins', text: txt });
                     Array.from(node.childNodes).forEach(c => walk(c, true, false));
                 } else if (tag === "w:del" || tag === "w:moveFrom") {
                     hasRev = true;
-                    authors.add(node.getAttribute("w:author") || "未知");
+                    authors.add(authorOf(node));
                     const txt = Array.from(node.getElementsByTagName("w:delText")).map(n => n.textContent).join("")
                              || Array.from(node.getElementsByTagName("w:t")).map(n => n.textContent).join("");
-                    if (txt) {
-                        const label = tag === "w:moveFrom" ? '<span class="badge move-badge">移出</span>' : '<span class="badge del-badge">刪除</span>';
-                        notes.push(`${label} ${escapeHTML(txt)}`);
-                    }
+                    if (txt) notes.push({ type: tag === "w:moveFrom" ? 'moveOut' : 'del', text: txt });
                     Array.from(node.childNodes).forEach(c => walk(c, false, true));
                 } else if (tag === "w:rPrChange" || tag === "w:pPrChange") {
                     hasRev = true;
-                    authors.add(node.getAttribute("w:author") || "未知");
-                    notes.push('<span class="badge fmt-badge">格式</span>');
-                    // Don't recurse into change-tracking metadata containers.
+                    authors.add(authorOf(node));
+                    notes.push({ type: 'fmt' });
                 } else if (tag === "w:t") {
                     const t = node.textContent;
                     if (inIns) {
@@ -423,8 +581,25 @@
             walk(pNode, false, false);
 
             return hasRev
-                ? { authors: [...authors].join(", "), authorList: [...authors], before, after, visualAfter, note: notes.join("<br>") }
+                ? { authorList: [...authors], before, after, visualAfter, notes }
                 : null;
+        }
+
+        function noteToHTML(notes) {
+            const cls = { ins: 'ins-badge', del: 'del-badge', fmt: 'fmt-badge', moveIn: 'move-badge', moveOut: 'move-badge' };
+            const labelKey = { ins: 'badgeIns', del: 'badgeDel', fmt: 'badgeFmt', moveIn: 'badgeMoveIn', moveOut: 'badgeMoveOut' };
+            return notes.map(n => {
+                const badge = `<span class="badge ${cls[n.type]}">${escapeHTML(t(labelKey[n.type]))}</span>`;
+                return n.text ? `${badge} ${escapeHTML(n.text)}` : badge;
+            }).join('<br>');
+        }
+
+        function noteToPlain(notes) {
+            const labelKey = { ins: 'badgeIns', del: 'badgeDel', fmt: 'badgeFmt', moveIn: 'badgeMoveIn', moveOut: 'badgeMoveOut' };
+            return notes.map(n => {
+                const label = t(labelKey[n.type]);
+                return n.text ? `${label} ${n.text}` : label;
+            }).join(' | ');
         }
 
         // ==========================================
@@ -452,21 +627,21 @@
             const sortedAuthors = [...authorCount.entries()].sort((a, b) => b[1] - a[1]);
 
             const chipsHTML = sortedAuthors.length === 0
-                ? '<span style="color:var(--c-muted)">尚無修訂</span>'
+                ? `<span style="color:var(--c-muted)">${escapeHTML(t('noRevisions'))}</span>`
                 : sortedAuthors.map(([name, count]) => {
                     const c = colorForAuthor(name);
                     return `<span class="author-chip" data-author="${escapeHTML(name)}"
                               style="background:${c.bg};color:${c.fg};border-color:${c.border};">
-                              ${escapeHTML(name)}<span class="count">${count}</span>
+                              ${escapeHTML(displayAuthor(name))}<span class="count">${count}</span>
                             </span>`;
                   }).join("");
 
             document.getElementById('statsBar').innerHTML = `
-                <div class="stat"><span class="stat-num">${processedFileNames.size}</span><span class="stat-label">檔案數</span></div>
+                <div class="stat"><span class="stat-num">${processedFileNames.size}</span><span class="stat-label">${escapeHTML(t('statFiles'))}</span></div>
                 <div class="stat-divider"></div>
-                <div class="stat"><span class="stat-num">${modifiedParagraphs}</span><span class="stat-label">修改段落</span></div>
+                <div class="stat"><span class="stat-num">${modifiedParagraphs}</span><span class="stat-label">${escapeHTML(t('statModified'))}</span></div>
                 <div class="stat-divider"></div>
-                <div class="stat"><span class="stat-num">${totalRevisions}</span><span class="stat-label">修訂筆數</span></div>
+                <div class="stat"><span class="stat-num">${totalRevisions}</span><span class="stat-label">${escapeHTML(t('statRevisions'))}</span></div>
                 <div class="stat-divider"></div>
                 <div class="author-chips" id="authorChips">${chipsHTML}</div>
             `;
@@ -505,16 +680,17 @@
 
                         const tags = rev.data.authorList.map(a => {
                             const c = colorForAuthor(a);
-                            return `<span class="author-tag" style="background:${c.bg};color:${c.fg};">${escapeHTML(a)}</span>`;
+                            return `<span class="author-tag" style="background:${c.bg};color:${c.fg};">${escapeHTML(displayAuthor(a))}</span>`;
                         }).join(" ");
 
-                        const noteText = rev.data.note.replace(/<[^>]+>/g, '').trim();
+                        const noteHTML = noteToHTML(rev.data.notes);
+                        const notePlain = noteToPlain(rev.data.notes);
 
                         tr.innerHTML = `
                             <td><div class="author-cell">${tags}<span class="row-num">#${globalCount}</span></div></td>
                             <td data-csv-value="${escapeHTML(rev.data.after)}">${rev.data.visualAfter}</td>
                             <td data-csv-value="${escapeHTML(paragraphData.baseBefore)}">${escapeHTML(paragraphData.baseBefore)}</td>
-                            <td data-csv-value="${escapeHTML(noteText)}">${rev.data.note}</td>
+                            <td data-csv-value="${escapeHTML(notePlain)}">${noteHTML}</td>
                         `;
                         tbody.appendChild(tr);
                     });
@@ -522,7 +698,7 @@
             }
 
             if (globalCount === 0) {
-                tbody.innerHTML = `<tr class="empty-row"><td colspan="4">這些檔案中沒有偵測到任何追蹤修訂內容。</td></tr>`;
+                tbody.innerHTML = `<tr class="empty-row"><td colspan="4">${escapeHTML(t('emptyState'))}</td></tr>`;
             }
         }
 
@@ -542,7 +718,7 @@
         // ==========================================
         function exportToVisualDoc() {
             let htmlContent = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-            <head><meta charset='utf-8'><title>重構合併文件</title>
+            <head><meta charset='utf-8'><title>${escapeHTML(t('docTitle', { name: baseFileName }))}</title>
             <style>
                 body { font-family: 'Microsoft JhengHei', 'Segoe UI', Arial, sans-serif; font-size: 11pt; line-height: 1.5; }
                 .author-label { font-weight: bold; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 10pt; margin-right: 8px; }
@@ -553,8 +729,8 @@
                 ins, .ins-text { color: #27ae60; text-decoration: underline; font-weight: bold; }
                 del { color: #e74c3c; text-decoration: line-through; }
             </style></head><body>
-            <div class="doc-title">多人修訂重構文件：${escapeHTML(baseFileName)}</div>
-            <div class="doc-meta">來源檔案：${[...processedFileNames].map(escapeHTML).join(" / ")}</div>
+            <div class="doc-title">${escapeHTML(t('docTitle', { name: baseFileName }))}</div>
+            <div class="doc-meta">${escapeHTML(t('docMeta', { files: [...processedFileNames].join(' / ') }))}</div>
             <hr>`;
 
             for (let paraId of orderedParagraphIds) {
@@ -563,10 +739,11 @@
 
                 if (modifiedRevs.length > 0) {
                     modifiedRevs.forEach(rev => {
-                        const firstAuthor = rev.data.authorList[0] || "未知";
+                        const firstAuthor = rev.data.authorList[0] || "__unknown__";
                         const c = colorForAuthor(firstAuthor);
+                        const authorLabel = rev.data.authorList.map(displayAuthor).join(", ");
                         htmlContent += `<div class="rev-block" style="border-left-color:${c.border};">
-                            <span class="author-label" style="background-color:${c.border};">[${escapeHTML(rev.data.authors)}]</span>
+                            <span class="author-label" style="background-color:${c.border};">[${escapeHTML(authorLabel)}]</span>
                             ${rev.data.visualAfter}
                         </div>`;
                     });
@@ -582,7 +759,7 @@
             const blob = new Blob(['﻿', htmlContent], { type: 'application/msword' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = `${baseFileName}_重構合併版.doc`;
+            link.download = `${baseFileName}${t('suffixReconstructed')}.doc`;
             link.click();
         }
 
@@ -591,24 +768,25 @@
         // ==========================================
         function exportToWordTable() {
             const preHtml = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-            <head><meta charset='utf-8'><title>合併修訂對照表</title>
+            <head><meta charset='utf-8'><title>${escapeHTML(t('wordTableHeading', { name: baseFileName }))}</title>
             <style> table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid black; padding: 8px; text-align: left; vertical-align: top; } th { background-color: #D3D3D3; } ins, .ins-text { color: #27ae60; text-decoration: underline; font-weight: bold; } del { color: #e74c3c; text-decoration: line-through; } .badge { color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.78em; margin-right: 4px; } .ins-badge { background-color: #27ae60; } .del-badge { background-color: #e74c3c; } .fmt-badge { background-color: #f39c12; } .move-badge { background-color: #1abc9c; } </style></head><body>
-            <h2 style="text-align:center;">多人追蹤修訂對照表 — ${escapeHTML(baseFileName)}</h2>`;
+            <h2 style="text-align:center;">${escapeHTML(t('wordTableHeading', { name: baseFileName }))}</h2>`;
             const html = preHtml + document.getElementById('revisionTable').outerHTML + "</body></html>";
             const link = document.createElement('a');
             link.href = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(html);
-            link.download = `${baseFileName}_修訂對照表.doc`;
+            link.download = `${baseFileName}${t('suffixTable')}.doc`;
             link.click();
         }
 
         function exportToHTML() {
             const tableHTML = document.getElementById('revisionTable').outerHTML;
             const style = document.querySelector('style').innerHTML;
-            const fullHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escapeHTML(baseFileName)} 修訂對照表</title><style>${style}</style></head>
-                              <body><div class="container"><h2>多人追蹤修訂對照表 — ${escapeHTML(baseFileName)}</h2><div class="table-wrap">${tableHTML}</div></div></body></html>`;
+            const heading = t('wordTableHeading', { name: baseFileName });
+            const fullHTML = `<!DOCTYPE html><html lang="${currentLang === 'zh' ? 'zh-Hant' : 'en'}"><head><meta charset="UTF-8"><title>${escapeHTML(heading)}</title><style>${style}</style></head>
+                              <body><div class="container"><h2>${escapeHTML(heading)}</h2><div class="table-wrap">${tableHTML}</div></div></body></html>`;
             const link = document.createElement("a");
             link.href = URL.createObjectURL(new Blob([fullHTML], { type: 'text/html' }));
-            link.download = `${baseFileName}_修訂對照表.html`;
+            link.download = `${baseFileName}${t('suffixTable')}.html`;
             link.click();
         }
 
@@ -625,14 +803,17 @@
             });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-            link.download = `${baseFileName}_修訂對照表.csv`;
+            link.download = `${baseFileName}${t('suffixTable')}.csv`;
             link.click();
         }
 
         function resetUI() {
-            if (processedFileNames.size > 0 && !confirm('確定要清除所有已解析的檔案嗎？')) return;
+            if (processedFileNames.size > 0 && !confirm(t('confirmReset'))) return;
             location.reload();
         }
+
+        // Initial language paint
+        applyI18n();
     </script>
 </body>
 </html>
