@@ -28,7 +28,7 @@
         }
         .container {
             position: relative;
-            max-width: 1280px; margin: 20px auto; padding: 28px;
+            max-width: 1400px; margin: 20px auto; padding: 28px;
             background-color: var(--c-card);
             border-radius: var(--radius); box-shadow: var(--shadow-md);
         }
@@ -151,12 +151,20 @@
         del { color: var(--c-bad); text-decoration: line-through; }
         .ins-text { color: var(--c-ok); text-decoration: underline; font-weight: 600; }
 
+        /* Comments Styling */
+        .comment-box {
+            margin-bottom: 8px; padding: 8px; background: #f9fbfd;
+            border-radius: 6px; border-left: 3px solid;
+            font-size: 0.9em; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .comment-author { font-size: 0.85em; font-weight: bold; margin-bottom: 4px; }
+
         /* Hero */
         .hero-box { background: linear-gradient(135deg, #f8f9fb 0%, #eef2f7 100%); border: 1px solid var(--c-border); border-radius: var(--radius); padding: 32px; text-align: center; }
         .hero-box h3 { margin-top: 0; color: var(--c-text); }
         .hero-box p { color: #555; font-size: 1.05em; }
 
-        @media (max-width: 720px) {
+        @media (max-width: 900px) {
             .container { padding: 16px; margin: 8px; padding-top: 48px; }
             .lang-toggle { top: 12px; right: 12px; }
             .tabs-row { flex-wrap: wrap; }
@@ -209,10 +217,11 @@
                     <table id="revisionTable">
                         <thead>
                             <tr>
-                                <th style="width:15%" data-i18n="thAuthor">作者 + 序號</th>
-                                <th style="width:32%" data-i18n="thAfter">追蹤修訂後的段落文字 (含增刪標記)</th>
-                                <th style="width:28%" data-i18n="thBefore">追蹤修訂前的原始段落</th>
-                                <th style="width:25%" data-i18n="thNote">追蹤修正的說明</th>
+                                <th style="width:12%" data-i18n="thAuthor">作者 + 序號</th>
+                                <th style="width:26%" data-i18n="thAfter">追蹤修訂後的段落文字 (含增刪標記)</th>
+                                <th style="width:24%" data-i18n="thBefore">追蹤修訂前的原始段落</th>
+                                <th style="width:18%" data-i18n="thNote">追蹤修正的說明</th>
+                                <th style="width:20%" data-i18n="thComment">註解內容</th>
                             </tr>
                         </thead>
                         <tbody id="resultBody"></tbody>
@@ -253,15 +262,16 @@
                 thAfter: '追蹤修訂後的段落文字 (含增刪標記)',
                 thBefore: '追蹤修訂前的原始段落',
                 thNote: '追蹤修正的說明',
+                thComment: '註解內容',
                 heroTitle: '擺脫 XML 衝突！全新重構乾淨的合併文件',
                 heroDesc: '此功能避開了 Word 底層極易損毀的追蹤修訂機制，改為直接讀取 HTML 視覺資料。<br><b>系統將以原文件的段落順序，重新生成一份完整且不會跑版的 Word 文件。</b>',
                 heroBtn: '📄 下載重構的合併文件 (.doc)',
                 heroFoot: '※ 此檔案保留了文件的原始閱讀動線，未修改的段落會保持原樣；有多人修改的段落，會自動分列並用顏色標示作者與增刪內容。',
                 statFiles: '檔案數',
-                statModified: '修改段落',
-                statRevisions: '修訂筆數',
-                noRevisions: '尚無修訂',
-                emptyState: '這些檔案中沒有偵測到任何追蹤修訂內容。',
+                statModified: '修改/註解段落',
+                statRevisions: '修訂與註解數',
+                noRevisions: '尚無修訂或註解',
+                emptyState: '這些檔案中沒有偵測到任何追蹤修訂或註解內容。',
                 badgeIns: '新增',
                 badgeDel: '刪除',
                 badgeFmt: '格式',
@@ -293,7 +303,7 @@
                 tabDoc: '📄 Reconstructed Document',
                 addFiles: '➕ Add more files',
                 resetAll: '🔄 Reset',
-                searchPlaceholder: '🔍 Search revision content...',
+                searchPlaceholder: '🔍 Search revision/comments content...',
                 exportWord: '📝 Export Word',
                 exportHTML: '🌐 Export HTML',
                 exportCSV: '📊 Export CSV',
@@ -301,15 +311,16 @@
                 thAfter: 'Revised paragraph (with markup)',
                 thBefore: 'Original paragraph',
                 thNote: 'Revision details',
+                thComment: 'Comments',
                 heroTitle: 'Bypass XML conflicts — get a clean reconstructed merge',
                 heroDesc: 'This feature sidesteps Word\'s fragile native track-change machinery and reads the HTML view directly.<br><b>The system rebuilds a clean Word document in the original paragraph order — no broken layouts.</b>',
                 heroBtn: '📄 Download reconstructed merged document (.doc)',
                 heroFoot: '※ The file preserves the original reading flow. Unmodified paragraphs stay as-is; paragraphs with multiple revisions are split into author-colored blocks.',
                 statFiles: 'Files',
                 statModified: 'Modified paragraphs',
-                statRevisions: 'Revisions',
+                statRevisions: 'Revs & Comments',
                 noRevisions: 'No revisions',
-                emptyState: 'No tracked changes were detected in these files.',
+                emptyState: 'No tracked changes or comments were detected in these files.',
                 badgeIns: 'Insert',
                 badgeDel: 'Delete',
                 badgeFmt: 'Format',
@@ -441,7 +452,6 @@
             return color;
         }
 
-        // Localized author display name (replaces __unknown__ sentinel)
         function displayAuthor(a) {
             return a === '__unknown__' ? t('unknownAuthor') : a;
         }
@@ -465,6 +475,29 @@
                 for (let file of validFiles) {
                     const arrayBuffer = await readFileAsArrayBuffer(file);
                     const docxZip = new PizZip(arrayBuffer);
+
+                    // ==========================================
+                    // 1. 解析該檔案中的註解 (Comments)
+                    // ==========================================
+                    const commentsMap = new Map();
+                    const commentsXmlFile = docxZip.file("word/comments.xml");
+                    if (commentsXmlFile) {
+                        const commentsXml = new DOMParser().parseFromString(commentsXmlFile.asText(), "application/xml");
+                        const commentNodes = commentsXml.getElementsByTagName('w:comment');
+                        for (let cNode of commentNodes) {
+                            const id = cNode.getAttribute('w:id');
+                            const author = cNode.getAttribute('w:author') || '__unknown__';
+                            // 將該註解內所有的文字節點合併
+                            const tNodes = cNode.getElementsByTagName('w:t');
+                            let text = "";
+                            for (let t of tNodes) text += t.textContent;
+                            if (id) commentsMap.set(id, { author, text });
+                        }
+                    }
+
+                    // ==========================================
+                    // 2. 解析主文件與追蹤修訂
+                    // ==========================================
                     const docXmlFile = docxZip.file("word/document.xml");
                     if (!docXmlFile) throw new Error(t('statusMissingXml', { f: file.name }));
                     const docXml = new DOMParser().parseFromString(docXmlFile.asText(), "application/xml");
@@ -472,7 +505,8 @@
 
                     let pIndex = 0;
                     for (let pNode of paragraphs) {
-                        const revData = extractRevisions(pNode);
+                        // 傳入 commentsMap 一起解析
+                        const revData = extractRevisions(pNode, commentsMap);
                         const paraId = pNode.getAttribute("w14:paraId")
                                     || pNode.getAttribute("w:rsidR")
                                     || `pos_${pIndex}`;
@@ -527,10 +561,12 @@
             return s;
         }
 
-        function extractRevisions(pNode) {
+        function extractRevisions(pNode, commentsMap) {
             let before = "", after = "", visualAfter = "";
             const authors = new Set();
             const notes = []; // structured: {type: 'ins'|'del'|'fmt'|'moveIn'|'moveOut', text?: string}
+            const commentsList = []; // 存放該段落的註解
+            const seenCommentIds = new Set();
             let hasRev = false;
 
             function authorOf(node) {
@@ -558,6 +594,18 @@
                     hasRev = true;
                     authors.add(authorOf(node));
                     notes.push({ type: 'fmt' });
+                // ==========================================
+                // 偵測段落中是否有掛載「註解」的 ID
+                // ==========================================
+                } else if (tag === "w:commentRangeStart" || tag === "w:commentReference") {
+                    const cId = node.getAttribute("w:id");
+                    if (cId && !seenCommentIds.has(cId) && commentsMap.has(cId)) {
+                        seenCommentIds.add(cId);
+                        hasRev = true; // 將註解也視為一種修改，讓它能呈現在報表中
+                        const cData = commentsMap.get(cId);
+                        authors.add(cData.author);
+                        commentsList.push(cData);
+                    }
                 } else if (tag === "w:t") {
                     const t = node.textContent;
                     if (inIns) {
@@ -581,7 +629,7 @@
             walk(pNode, false, false);
 
             return hasRev
-                ? { authorList: [...authors], before, after, visualAfter, notes }
+                ? { authorList: [...authors], before, after, visualAfter, notes, commentsList }
                 : null;
         }
 
@@ -675,8 +723,10 @@
                         const tr = document.createElement('tr');
                         if (index === 0 && groupIndex > 1) tr.classList.add('row-group-start');
                         if (index > 0) tr.classList.add('repeated-para-row');
+                        
+                        const commentTextForSearch = rev.data.commentsList.map(c => c.text).join(" ");
                         tr.dataset.authors = rev.data.authorList.join("|");
-                        tr.dataset.searchText = (rev.data.after + " " + paragraphData.baseBefore).toLowerCase();
+                        tr.dataset.searchText = (rev.data.after + " " + paragraphData.baseBefore + " " + commentTextForSearch).toLowerCase();
 
                         const tags = rev.data.authorList.map(a => {
                             const c = colorForAuthor(a);
@@ -686,11 +736,24 @@
                         const noteHTML = noteToHTML(rev.data.notes);
                         const notePlain = noteToPlain(rev.data.notes);
 
+                        // 渲染註解區塊
+                        const commentHTML = rev.data.commentsList.map(c => {
+                            const cColor = colorForAuthor(c.author);
+                            return `<div class="comment-box" style="border-left-color: ${cColor.border};">
+                                        <div class="comment-author" style="color: ${cColor.fg};">💬 ${escapeHTML(displayAuthor(c.author))}</div>
+                                        <div>${escapeHTML(c.text)}</div>
+                                    </div>`;
+                        }).join("");
+                        
+                        const commentPlain = rev.data.commentsList.map(c => `[${displayAuthor(c.author)}] ${c.text}`).join(" | ");
+
+                        // 更新為 5 欄顯示
                         tr.innerHTML = `
                             <td><div class="author-cell">${tags}<span class="row-num">#${globalCount}</span></div></td>
                             <td data-csv-value="${escapeHTML(rev.data.after)}">${rev.data.visualAfter}</td>
                             <td data-csv-value="${escapeHTML(paragraphData.baseBefore)}">${escapeHTML(paragraphData.baseBefore)}</td>
                             <td data-csv-value="${escapeHTML(notePlain)}">${noteHTML}</td>
+                            <td data-csv-value="${escapeHTML(commentPlain)}">${commentHTML}</td>
                         `;
                         tbody.appendChild(tr);
                     });
@@ -698,7 +761,7 @@
             }
 
             if (globalCount === 0) {
-                tbody.innerHTML = `<tr class="empty-row"><td colspan="4">${escapeHTML(t('emptyState'))}</td></tr>`;
+                tbody.innerHTML = `<tr class="empty-row"><td colspan="5">${escapeHTML(t('emptyState'))}</td></tr>`;
             }
         }
 
@@ -728,6 +791,7 @@
                 .doc-meta { text-align: center; color: #7f8c8d; font-size: 9pt; margin-bottom: 18px; }
                 ins, .ins-text { color: #27ae60; text-decoration: underline; font-weight: bold; }
                 del { color: #e74c3c; text-decoration: line-through; }
+                .inline-comment { font-size: 10pt; color: #e67e22; border: 1px dashed #e67e22; padding: 2px 4px; margin-left: 6px; background: #fffdf5; }
             </style></head><body>
             <div class="doc-title">${escapeHTML(t('docTitle', { name: baseFileName }))}</div>
             <div class="doc-meta">${escapeHTML(t('docMeta', { files: [...processedFileNames].join(' / ') }))}</div>
@@ -742,9 +806,15 @@
                         const firstAuthor = rev.data.authorList[0] || "__unknown__";
                         const c = colorForAuthor(firstAuthor);
                         const authorLabel = rev.data.authorList.map(displayAuthor).join(", ");
+                        
+                        let commentText = '';
+                        if (rev.data.commentsList && rev.data.commentsList.length > 0) {
+                             commentText = rev.data.commentsList.map(cmt => `<span class="inline-comment">[註解: ${escapeHTML(cmt.text)}]</span>`).join(" ");
+                        }
+
                         htmlContent += `<div class="rev-block" style="border-left-color:${c.border};">
                             <span class="author-label" style="background-color:${c.border};">[${escapeHTML(authorLabel)}]</span>
-                            ${rev.data.visualAfter}
+                            ${rev.data.visualAfter} ${commentText}
                         </div>`;
                     });
                 } else {
@@ -756,7 +826,7 @@
 
             htmlContent += "</body></html>";
 
-            const blob = new Blob(['﻿', htmlContent], { type: 'application/msword' });
+            const blob = new Blob(['\uFEFF', htmlContent], { type: 'application/msword' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
             link.download = `${baseFileName}${t('suffixReconstructed')}.doc`;
@@ -769,7 +839,7 @@
         function exportToWordTable() {
             const preHtml = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
             <head><meta charset='utf-8'><title>${escapeHTML(t('wordTableHeading', { name: baseFileName }))}</title>
-            <style> table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid black; padding: 8px; text-align: left; vertical-align: top; } th { background-color: #D3D3D3; } ins, .ins-text { color: #27ae60; text-decoration: underline; font-weight: bold; } del { color: #e74c3c; text-decoration: line-through; } .badge { color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.78em; margin-right: 4px; } .ins-badge { background-color: #27ae60; } .del-badge { background-color: #e74c3c; } .fmt-badge { background-color: #f39c12; } .move-badge { background-color: #1abc9c; } </style></head><body>
+            <style> table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid black; padding: 8px; text-align: left; vertical-align: top; } th { background-color: #D3D3D3; } ins, .ins-text { color: #27ae60; text-decoration: underline; font-weight: bold; } del { color: #e74c3c; text-decoration: line-through; } .badge { color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.78em; margin-right: 4px; } .ins-badge { background-color: #27ae60; } .del-badge { background-color: #e74c3c; } .fmt-badge { background-color: #f39c12; } .move-badge { background-color: #1abc9c; } .comment-box { margin-bottom: 6px; border-left: 2px solid #888; padding-left: 6px; font-size: 0.9em; } .comment-author { font-weight: bold; font-size: 0.9em; }</style></head><body>
             <h2 style="text-align:center;">${escapeHTML(t('wordTableHeading', { name: baseFileName }))}</h2>`;
             const html = preHtml + document.getElementById('revisionTable').outerHTML + "</body></html>";
             const link = document.createElement('a');
@@ -792,7 +862,7 @@
 
         function exportToCSV() {
             const rows = document.querySelectorAll("#revisionTable tr");
-            let csv = "﻿";
+            let csv = "\uFEFF";
             rows.forEach(row => {
                 const cells = Array.from(row.querySelectorAll("th, td")).map(c => {
                     const v = c.getAttribute('data-csv-value');
