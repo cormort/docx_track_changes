@@ -173,6 +173,7 @@
             table { table-layout: auto; }
         }
     </style>
+    <!-- Include PizZip for docx parsing -->
     <script src="https://cdn.jsdelivr.net/npm/pizzip@3.1.5/dist/pizzip.min.js"></script>
 </head>
 <body>
@@ -189,6 +190,8 @@
                 <br><span style="font-size:0.85em; color:#888;" data-i18n="dropHint">(請確保上傳的檔案皆源自同一份原始文件)</span>
                 <input type="file" id="wordFiles" accept=".docx" multiple class="hidden">
             </div>
+            <!-- Demo Button -->
+            <button class="btn btn-ghost" style="margin-top: 10px; width: 100%; justify-content: center; border: 1px dashed var(--c-primary);" onclick="loadDemoData()" data-i18n="demoBtn">🪄 點我載入測試 Demo 資料</button>
         </div>
 
         <div id="status"></div>
@@ -250,6 +253,7 @@
                 subtitle: '將多份來自同一原稿的 .docx 修訂版本合併為一份對照表 / 重構文件',
                 dropMain: '將 <b>多個</b> .docx 檔案拖曳至此處，或點擊選擇檔案',
                 dropHint: '(請確保上傳的檔案皆源自同一份原始文件)',
+                demoBtn: '🪄 點我載入測試 Demo 資料',
                 tabTable: '👁️ 檢視與匯出表格',
                 tabDoc: '📄 重構合併文件',
                 addFiles: '➕ 加入更多檔案',
@@ -299,6 +303,7 @@
                 subtitle: 'Merge multiple revised .docx versions of the same source into a comparison table or a reconstructed document',
                 dropMain: 'Drop <b>multiple</b> .docx files here, or click to select',
                 dropHint: '(All files must originate from the same source document)',
+                demoBtn: '🪄 Click to load Demo data',
                 tabTable: '👁️ Comparison Table',
                 tabDoc: '📄 Reconstructed Document',
                 addFiles: '➕ Add more files',
@@ -880,6 +885,89 @@
         function resetUI() {
             if (processedFileNames.size > 0 && !confirm(t('confirmReset'))) return;
             location.reload();
+        }
+
+        // ==========================================
+        // Demo Data Loader
+        // ==========================================
+        function loadDemoData() {
+            // 清除現有狀態
+            combinedRevisionsMap.clear();
+            orderedParagraphIds = [];
+            processedFileNames.clear();
+
+            // 隱藏上傳區，顯示載入狀態
+            document.getElementById('uploadSection').classList.add('hidden');
+            setStatus('statusAnalyzing', 'orange', true, { n: 1 });
+
+            setTimeout(() => {
+                // 注入測試檔案與基本參數
+                processedFileNames.add("2024_Marketing_Plan_RevA.docx");
+                baseFileName = "2024_Marketing_Plan_RevA";
+                orderedParagraphIds = ["para_1", "para_2", "para_3"];
+
+                // 注入第一段：包含「王小明」與「林大偉」的修訂與註解
+                combinedRevisionsMap.set("para_1", {
+                    baseBefore: "這份報告預計在明天下午提交給總經理。",
+                    revisions: [{
+                        docName: "2024_Marketing_Plan_RevA.docx",
+                        hasRev: true,
+                        data: {
+                            authorList: ["王小明", "林大偉"],
+                            before: "這份報告預計在明天下午提交給總經理。",
+                            after: "這份關鍵報告預計在下週一早上提交給總經理。",
+                            visualAfter: "這份<span class='ins-text'>關鍵</span>報告預計在<del>明天下午</del><span class='ins-text'>下週一早上</span>提交給總經理。",
+                            notes: [
+                                { type: "ins", text: "關鍵" },
+                                { type: "del", text: "明天下午" },
+                                { type: "ins", text: "下週一早上" }
+                            ],
+                            commentsList: [
+                                { author: "林大偉", text: "老闆說會議時間延後了，所以我先把日期改掉，請確認這份定稿。" }
+                            ]
+                        }
+                    }]
+                });
+
+                // 注入第二段：純內文（無修訂，將被系統略過不顯示於表格）
+                combinedRevisionsMap.set("para_2", {
+                    baseBefore: "接下來的進度將由各部門主管進行後續追蹤。",
+                    revisions: [{ docName: "2024_Marketing_Plan_RevA.docx", hasRev: false, data: null }]
+                });
+
+                // 注入第三段：包含多個註解對話與格式修改
+                combinedRevisionsMap.set("para_3", {
+                    baseBefore: "預算的部份，我們將申請額外五萬元的補助。",
+                    revisions: [{
+                        docName: "2024_Marketing_Plan_RevA.docx",
+                        hasRev: true,
+                        data: {
+                            authorList: ["陳阿美", "王小明"],
+                            before: "預算的部份，我們將申請額外五萬元的補助。",
+                            after: "預算的部份，我們將申請額外十萬元的專案補助。",
+                            visualAfter: "預算的部份，我們將申請額外<del>五萬元</del><span class='ins-text'>十萬元</span>的<span class='ins-text'>專案</span>補助。",
+                            notes: [
+                                { type: "del", text: "五萬元" },
+                                { type: "ins", text: "十萬元的專案" },
+                                { type: "fmt" }
+                            ],
+                            commentsList: [
+                                { author: "陳阿美", text: "財務部提醒，記得要附上詳細的預算明細表才能通過審核喔！" },
+                                { author: "王小明", text: "沒問題，我已經把附件補在信件裡了。" }
+                            ]
+                        }
+                    }]
+                });
+
+                // 觸發畫面渲染
+                renderTable();
+                renderStats();
+                renderFileList();
+                applyFilters();
+
+                setStatus('statusDone', 'green', false, { n: 1 });
+                document.getElementById('resultSection').style.display = 'block';
+            }, 600); // 模擬解析延遲
         }
 
         // Initial language paint
