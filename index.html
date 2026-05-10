@@ -164,6 +164,20 @@
         .hero-box h3 { margin-top: 0; color: var(--c-text); }
         .hero-box p { color: #555; font-size: 1.05em; }
 
+        /* Consistency Warning */
+        .consistency-warn {
+            background: #fff8e1; border: 1px solid #f39c12; border-left: 4px solid var(--c-warn);
+            border-radius: var(--radius); padding: 12px 16px; margin-bottom: 14px;
+            color: #6b4f00; font-size: 0.92em;
+        }
+        .consistency-warn .warn-title { font-weight: 700; margin-bottom: 4px; color: #b07700; }
+        .consistency-warn .warn-hint { color: #7a5d00; margin-bottom: 4px; }
+        .consistency-warn details { margin-top: 6px; }
+        .consistency-warn summary { cursor: pointer; font-size: 0.9em; color: #555; user-select: none; }
+        .consistency-warn .warn-list { margin: 6px 0 0 20px; padding: 0; font-size: 0.9em; }
+        .consistency-warn .warn-list li { margin-bottom: 3px; word-break: break-word; }
+        .consistency-warn .warn-list code { background: rgba(255,255,255,.6); padding: 0 4px; border-radius: 3px; }
+
         @media (max-width: 900px) {
             .container { padding: 16px; margin: 8px; padding-top: 48px; }
             .lang-toggle { top: 12px; right: 12px; }
@@ -198,6 +212,7 @@
         <div id="fileList"></div>
 
         <div id="resultSection" role="region" aria-label="Results">
+            <div id="consistencyWarning" class="consistency-warn hidden" role="alert"></div>
             <div class="stats-bar" id="statsBar"></div>
 
             <div class="tabs-row" role="tablist">
@@ -289,6 +304,11 @@
                 statusErrorDefault: '請確認檔案皆為標準 Word 檔',
                 statusDone: '解析完成！共處理 {n} 份檔案',
                 statusDoneSkip: '解析完成！共 {n} 份檔案 (本次略過 {s} 份重複)',
+                consistencyWarning: '偵測到 {n} 個段落的原稿在不同檔案間不一致',
+                consistencyHint: '可能原因：有作者未全程使用「追蹤修訂」直接修改了原文，或檔案並非源自同一份原稿。受影響段落的合併結果可能不可靠。',
+                consistencyShowDetails: '顯示詳細衝突位置',
+                consistencyConflictLine: '「{preview}」 vs 「{otherPreview}」 — 涉及檔案：{files}',
+                consistencyMore: '...另有 {n} 個衝突段落未顯示',
                 confirmReset: '確定要清除所有已解析的檔案嗎？',
                 docTitle: '多人修訂重構文件：{name}',
                 docMeta: '來源檔案：{files}',
@@ -339,6 +359,11 @@
                 statusErrorDefault: 'Please ensure files are standard Word documents',
                 statusDone: 'Done! Processed {n} file(s)',
                 statusDoneSkip: 'Done! {n} total file(s) ({s} duplicate skipped)',
+                consistencyWarning: 'Detected {n} paragraph(s) whose source text differs across files',
+                consistencyHint: 'Likely cause: someone edited the original text without using Track Changes, or the files come from different sources. Merge results for affected paragraphs may be unreliable.',
+                consistencyShowDetails: 'Show conflict details',
+                consistencyConflictLine: '"{preview}" vs "{otherPreview}" — files: {files}',
+                consistencyMore: '...{n} more conflicting paragraph(s) not shown',
                 confirmReset: 'Clear all parsed files?',
                 docTitle: 'Multi-author reconstructed document: {name}',
                 docMeta: 'Source files: {files}',
@@ -422,6 +447,7 @@
             if (orderedParagraphIds.length > 0) {
                 renderTable();
                 renderStats();
+                renderConsistencyWarning();
                 applyFilters();
             }
         });
@@ -512,14 +538,26 @@
                     for (let pNode of paragraphs) {
                         // 傳入 commentsMap 一起解析
                         const revData = extractRevisions(pNode, commentsMap);
+                        // w14:paraId 是 Word 自動指派且跨儲存保留的段落唯一識別碼；
+                        // 缺少時 fallback 到位置（不再使用 w:rsidR — 那是儲存版本 id，會導致同檔內多段落誤合併）
                         const paraId = pNode.getAttribute("w14:paraId")
-                                    || pNode.getAttribute("w:rsidR")
                                     || `pos_${pIndex}`;
+                        const beforeText = revData ? revData.before : plainText(pNode);
 
                         if (!combinedRevisionsMap.has(paraId)) {
-                            let baseText = revData ? revData.before : plainText(pNode);
-                            combinedRevisionsMap.set(paraId, { baseBefore: baseText, revisions: [] });
+                            combinedRevisionsMap.set(paraId, {
+                                baseBefore: beforeText,
+                                baseFile: file.name,
+                                revisions: []
+                            });
                             orderedParagraphIds.push(paraId);
+                        } else {
+                            // 同一個 paraId 在另一個檔出現了不同的「原稿文字」→ 一致性衝突
+                            const entry = combinedRevisionsMap.get(paraId);
+                            if (entry.baseBefore !== beforeText) {
+                                if (!entry.conflicts) entry.conflicts = [];
+                                entry.conflicts.push({ file: file.name, text: beforeText });
+                            }
                         }
 
                         combinedRevisionsMap.get(paraId).revisions.push({
@@ -536,6 +574,7 @@
                 renderTable();
                 renderStats();
                 renderFileList();
+                renderConsistencyWarning();
                 applyFilters();
 
                 if (skipped > 0) setStatus('statusDoneSkip', 'green', false, { n: processedFileNames.size, s: skipped });
@@ -709,6 +748,53 @@
                     applyFilters();
                 });
             });
+        }
+
+        function renderConsistencyWarning() {
+            const banner = document.getElementById('consistencyWarning');
+            const conflicts = [];
+            for (const paraId of orderedParagraphIds) {
+                const entry = combinedRevisionsMap.get(paraId);
+                if (entry.conflicts && entry.conflicts.length > 0) {
+                    conflicts.push({ paraId, entry });
+                }
+            }
+
+            if (conflicts.length === 0) {
+                banner.classList.add('hidden');
+                banner.innerHTML = '';
+                return;
+            }
+
+            const previewLen = 40;
+            const preview = s => {
+                const trimmed = (s || '').trim();
+                if (trimmed.length <= previewLen) return trimmed || '(空)';
+                return trimmed.slice(0, previewLen) + '…';
+            };
+
+            const items = conflicts.slice(0, 8).map(({ entry }) => {
+                const allFiles = [entry.baseFile, ...entry.conflicts.map(c => c.file)];
+                return `<li>${escapeHTML(t('consistencyConflictLine', {
+                    preview: preview(entry.baseBefore),
+                    otherPreview: preview(entry.conflicts[0].text),
+                    files: allFiles.join(' / ')
+                }))}</li>`;
+            }).join('');
+
+            const more = conflicts.length > 8
+                ? `<li>${escapeHTML(t('consistencyMore', { n: conflicts.length - 8 }))}</li>`
+                : '';
+
+            banner.innerHTML = `
+                <div class="warn-title">⚠️ ${escapeHTML(t('consistencyWarning', { n: conflicts.length }))}</div>
+                <div class="warn-hint">${escapeHTML(t('consistencyHint'))}</div>
+                <details>
+                    <summary>${escapeHTML(t('consistencyShowDetails'))}</summary>
+                    <ul class="warn-list">${items}${more}</ul>
+                </details>
+            `;
+            banner.classList.remove('hidden');
         }
 
         function renderTable() {
@@ -963,6 +1049,7 @@
                 renderTable();
                 renderStats();
                 renderFileList();
+                renderConsistencyWarning();
                 applyFilters();
 
                 setStatus('statusDone', 'green', false, { n: 1 });
