@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Word 多人修訂合併神器 / Word Multi-Author Revision Merger</title>
-    <style>
+    <style id="appStyle">
         :root {
             --c-bg: #f4f7f9;
             --c-card: #ffffff;
@@ -131,6 +131,7 @@
 
         /* Table */
         .table-wrap { max-height: 70vh; overflow: auto; border: 1px solid var(--c-border); border-radius: var(--radius); background: white; }
+        /* NOTE: Column <th> widths must sum to 100% (currently 12+26+24+18+20) */
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         th, td { border-bottom: 1px solid var(--c-border); padding: 12px; text-align: left; vertical-align: top; word-wrap: break-word; }
         th { background-color: var(--c-text); color: white; position: sticky; top: 0; z-index: 1; font-weight: 600; }
@@ -187,8 +188,8 @@
             table { table-layout: auto; }
         }
     </style>
-    <!-- Include PizZip for docx parsing -->
-    <script src="https://cdn.jsdelivr.net/npm/pizzip@3.1.5/dist/pizzip.min.js"></script>
+    <!-- Include PizZip for docx parsing  TODO: add integrity="sha256-..." for SRI -->
+    <script src="https://cdn.jsdelivr.net/npm/pizzip@3.1.5/dist/pizzip.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -221,15 +222,15 @@
             <div class="stats-bar" id="statsBar"></div>
 
             <div class="tabs-row" role="tablist">
-                <button class="tab-btn active" role="tab" aria-selected="true" data-tab="tab-table" data-i18n="tabTable">👁️ 檢視與匯出表格</button>
-                <button class="tab-btn" role="tab" aria-selected="false" data-tab="tab-doc" data-i18n="tabDoc">📄 重構合併文件</button>
+                <button class="tab-btn active" role="tab" aria-selected="true" id="tabBtnTable" data-tab="tab-table" data-i18n="tabTable">👁️ 檢視與匯出表格</button>
+                <button class="tab-btn" role="tab" aria-selected="false" id="tabBtnDoc" data-tab="tab-doc" data-i18n="tabDoc">📄 重構合併文件</button>
                 <div class="tab-actions">
                     <button class="btn btn-ghost" onclick="document.getElementById('wordFiles').click()" data-i18n="addFiles">➕ 加入更多檔案</button>
                     <button class="btn btn-reset" onclick="resetUI()" data-i18n="resetAll">🔄 全部清除</button>
                 </div>
             </div>
 
-            <div id="tab-table" class="tab-content active" role="tabpanel">
+            <div id="tab-table" class="tab-content active" role="tabpanel" aria-labelledby="tabBtnTable">
                 <div class="toolbar">
                     <input type="text" class="search-box" id="searchBox" data-i18n-placeholder="searchPlaceholder" placeholder="🔍 在修訂內容中搜尋..." aria-label="Search">
                     <button class="btn btn-word" onclick="exportToWordTable()" data-i18n="exportWord">📝 匯出 Word</button>
@@ -252,12 +253,16 @@
                 </div>
             </div>
 
-            <div id="tab-doc" class="tab-content" role="tabpanel">
+            <div id="tab-doc" class="tab-content" role="tabpanel" aria-labelledby="tabBtnDoc">
                 <div class="hero-box">
                     <h3 data-i18n="heroTitle">擺脫 XML 衝突！全新重構乾淨的合併文件</h3>
                     <p data-i18n-html="heroDesc">此功能避開了 Word 底層極易損毀的追蹤修訂機制，改為直接讀取 HTML 視覺資料。<br><b>系統將以原文件的段落順序，重新生成一份完整且不會跑版的 Word 文件。</b></p>
-                    <button class="btn btn-primary" onclick="exportToVisualDoc()" data-i18n="heroBtn">📄 下載重構的合併文件 (.doc)</button>
+                    <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+                        <button class="btn btn-primary" style="margin:0;" onclick="exportToVisualDoc()" data-i18n="heroBtn">📄 下載重構的合併文件 (.docx)</button>
+                        <button class="btn btn-ghost" style="font-size:15px; padding:12px 24px;" onclick="previewVisualDoc()" data-i18n="previewBtn">👁️ 預覽重構文件</button>
+                    </div>
                     <p style="font-size: 0.9em; color: var(--c-muted);" data-i18n="heroFoot">※ 此檔案保留了文件的原始閱讀動線，未修改的段落會保持原樣；有多人修改的段落，會自動分列並用顏色標示作者與增刪內容。</p>
+                    <p style="font-size: 0.85em; color: var(--c-warn);" data-i18n="wordCompatNote">⚠️ 此檔案為 HTML 格式，建議使用 Microsoft Word 開啟以獲得最佳效果。</p>
                 </div>
             </div>
         </div>
@@ -289,7 +294,7 @@
                 thComment: '註解內容',
                 heroTitle: '擺脫 XML 衝突！全新重構乾淨的合併文件',
                 heroDesc: '此功能避開了 Word 底層極易損毀的追蹤修訂機制，改為直接讀取 HTML 視覺資料。<br><b>系統將以原文件的段落順序，重新生成一份完整且不會跑版的 Word 文件。</b>',
-                heroBtn: '📄 下載重構的合併文件 (.doc)',
+                heroBtn: '📄 下載重構的合併文件 (.docx)',
                 heroFoot: '※ 此檔案保留了文件的原始閱讀動線，未修改的段落會保持原樣；有多人修改的段落，會自動分列並用顏色標示作者與增刪內容。',
                 statFiles: '檔案數',
                 statModified: '修改/註解段落',
@@ -322,7 +327,12 @@
                 suffixReconstructed: '_重構合併版',
                 suffixTable: '_修訂對照表',
                 toggleLabel: '🌐 EN',
-                backToUpload: '⬅️ 回到載入檔案'
+                backToUpload: '⬅️ 回到載入檔案',
+                commentLabel: '註解',
+                previewBtn: '👁️ 預覽重構文件',
+                wordCompatNote: '⚠️ 此檔案為 HTML 格式，建議使用 Microsoft Word 開啟以獲得最佳效果。',
+                multiAuthorHeader: '以下段落有 {count} 位作者的修訂 (來自 {files} 份檔案)',
+                originalText: '原文'
             },
             en: {
                 title: 'Word Multi-Author Revision Merger',
@@ -345,7 +355,7 @@
                 thComment: 'Comments',
                 heroTitle: 'Bypass XML conflicts — get a clean reconstructed merge',
                 heroDesc: 'This feature sidesteps Word\'s fragile native track-change machinery and reads the HTML view directly.<br><b>The system rebuilds a clean Word document in the original paragraph order — no broken layouts.</b>',
-                heroBtn: '📄 Download reconstructed merged document (.doc)',
+                heroBtn: '📄 Download reconstructed merged document (.docx)',
                 heroFoot: '※ The file preserves the original reading flow. Unmodified paragraphs stay as-is; paragraphs with multiple revisions are split into author-colored blocks.',
                 statFiles: 'Files',
                 statModified: 'Modified paragraphs',
@@ -378,7 +388,12 @@
                 suffixReconstructed: '_reconstructed',
                 suffixTable: '_revisions_table',
                 toggleLabel: '🌐 中',
-                backToUpload: '⬅️ Back to Load File'
+                backToUpload: '⬅️ Back to Load File',
+                commentLabel: 'Comment',
+                previewBtn: '👁️ Preview reconstructed doc',
+                wordCompatNote: '⚠️ This file is in HTML format. For best results, open it with Microsoft Word.',
+                multiAuthorHeader: 'This paragraph has {count} revision(s) from {files} file(s)',
+                originalText: 'Original'
             }
         };
 
@@ -418,6 +433,7 @@
         let baseFileName = "merged_revisions";
         let authorColors = new Map();
         let activeAuthorFilter = null;
+        const DEMO_DELAY_MS = 600;
 
         const fileInput = document.getElementById('wordFiles');
         const statusDiv = document.getElementById('status');
@@ -460,7 +476,7 @@
         });
 
         function escapeHTML(str) {
-            return String(str).replace(/[&<>'"]/g, t => ({ '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;' }[t]));
+            return String(str).replace(/[&<>'"]/g, ch => ({ '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;' }[ch]));
         }
 
         function switchTab(tabId, btn) {
@@ -482,9 +498,10 @@
 
         function colorForAuthor(name) {
             if (authorColors.has(name)) return authorColors.get(name);
-            let h = 0;
-            for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
-            const hue = h % 360;
+            // Golden angle distribution for better hue separation between authors
+            const idx = authorColors.size;
+            const GOLDEN_ANGLE = 137.508;
+            const hue = Math.round((idx * GOLDEN_ANGLE) % 360);
             const color = { bg: `hsl(${hue} 65% 92%)`, fg: `hsl(${hue} 55% 30%)`, border: `hsl(${hue} 55% 50%)` };
             authorColors.set(name, color);
             return color;
@@ -512,7 +529,12 @@
 
                 for (let file of validFiles) {
                     const arrayBuffer = await readFileAsArrayBuffer(file);
-                    const docxZip = new PizZip(arrayBuffer);
+                    let docxZip;
+                    try {
+                        docxZip = new PizZip(arrayBuffer);
+                    } catch (zipErr) {
+                        throw new Error(`${file.name}: ${zipErr.message}`);
+                    }
 
                     // ==========================================
                     // 1. 解析該檔案中的註解 (Comments)
@@ -522,13 +544,13 @@
                     if (commentsXmlFile) {
                         const commentsXml = new DOMParser().parseFromString(commentsXmlFile.asText(), "application/xml");
                         const commentNodes = commentsXml.getElementsByTagName('w:comment');
-                        for (let cNode of commentNodes) {
+                        for (let cNode of Array.from(commentNodes)) {
                             const id = cNode.getAttribute('w:id');
                             const author = cNode.getAttribute('w:author') || '__unknown__';
                             // 將該註解內所有的文字節點合併
                             const tNodes = cNode.getElementsByTagName('w:t');
                             let text = "";
-                            for (let t of tNodes) text += t.textContent;
+                            for (let txt of Array.from(tNodes)) text += txt.textContent;
                             if (id) commentsMap.set(id, { author, text });
                         }
                     }
@@ -542,13 +564,13 @@
                     const paragraphs = docXml.getElementsByTagName('w:p');
 
                     let pIndex = 0;
-                    for (let pNode of paragraphs) {
+                    for (let pNode of Array.from(paragraphs)) {
                         // 傳入 commentsMap 一起解析
                         const revData = extractRevisions(pNode, commentsMap);
                         // w14:paraId 是 Word 自動指派且跨儲存保留的段落唯一識別碼；
-                        // 缺少時 fallback 到位置（不再使用 w:rsidR — 那是儲存版本 id，會導致同檔內多段落誤合併）
+                        // 缺少時 fallback 到位置（含檔名避免跨檔碰撞）
                         const paraId = pNode.getAttribute("w14:paraId")
-                                    || `pos_${pIndex}`;
+                                    || `pos_${file.name}_${pIndex}`;
                         const beforeText = revData ? revData.before : plainText(pNode);
 
                         if (!combinedRevisionsMap.has(paraId)) {
@@ -577,6 +599,7 @@
                     }
                     processedFileNames.add(file.name);
                 }
+                fileInput.value = ''; // #14: allow re-selecting same file
 
                 renderTable();
                 renderStats();
@@ -616,6 +639,7 @@
             let before = "", after = "", visualAfter = "";
             const authors = new Set();
             const notes = []; // structured: {type: 'ins'|'del'|'fmt'|'moveIn'|'moveOut', text?: string}
+            const segments = []; // structured segments for docx generation
             const commentsList = []; // 存放該段落的註解
             const seenCommentIds = new Set();
             let hasRev = false;
@@ -652,26 +676,29 @@
                     const cId = node.getAttribute("w:id");
                     if (cId && !seenCommentIds.has(cId) && commentsMap.has(cId)) {
                         seenCommentIds.add(cId);
-                        hasRev = true; // 將註解也視為一種修改，讓它能呈現在報表中
+                        hasRev = true;
                         const cData = commentsMap.get(cId);
                         authors.add(cData.author);
                         commentsList.push(cData);
                     }
                 } else if (tag === "w:t") {
-                    const t = node.textContent;
+                    const txt = node.textContent;
                     if (inIns) {
-                        after += t;
-                        visualAfter += `<span class="ins-text">${escapeHTML(t)}</span>`;
+                        after += txt;
+                        visualAfter += `<span class="ins-text">${escapeHTML(txt)}</span>`;
+                        segments.push({ type: 'ins', text: txt });
                     } else if (!inDel) {
-                        before += t;
-                        after += t;
-                        visualAfter += escapeHTML(t);
+                        before += txt;
+                        after += txt;
+                        visualAfter += escapeHTML(txt);
+                        segments.push({ type: 'normal', text: txt });
                     }
                 } else if (tag === "w:delText") {
                     if (inDel) {
-                        const t = node.textContent;
-                        before += t;
-                        visualAfter += `<del>${escapeHTML(t)}</del>`;
+                        const txt = node.textContent;
+                        before += txt;
+                        visualAfter += `<del>${escapeHTML(txt)}</del>`;
+                        segments.push({ type: 'del', text: txt });
                     }
                 } else {
                     Array.from(node.childNodes).forEach(c => walk(c, inIns, inDel));
@@ -680,7 +707,7 @@
             walk(pNode, false, false);
 
             return hasRev
-                ? { authorList: [...authors], before, after, visualAfter, notes, commentsList }
+                ? { authorList: [...authors], before, after, visualAfter, segments, notes, commentsList }
                 : null;
         }
 
@@ -729,7 +756,7 @@
                 ? `<span style="color:var(--c-muted)">${escapeHTML(t('noRevisions'))}</span>`
                 : sortedAuthors.map(([name, count]) => {
                     const c = colorForAuthor(name);
-                    return `<span class="author-chip" data-author="${escapeHTML(name)}"
+                    return `<span class="author-chip" role="button" tabindex="0" data-author="${escapeHTML(name)}"
                               style="background:${c.bg};color:${c.fg};border-color:${c.border};">
                               ${escapeHTML(displayAuthor(name))}<span class="count">${count}</span>
                             </span>`;
@@ -875,16 +902,19 @@
         }
 
         // ==========================================
-        // Reconstructed visual doc
+        // Reconstructed visual doc (O1-O7 optimizations)
         // ==========================================
-        function exportToVisualDoc() {
-            let htmlContent = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+        function buildVisualDocHTML() {
+            const parts = [];
+            parts.push(`<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
             <head><meta charset='utf-8'><title>${escapeHTML(t('docTitle', { name: baseFileName }))}</title>
             <style>
                 body { font-family: 'Microsoft JhengHei', 'Segoe UI', Arial, sans-serif; font-size: 11pt; line-height: 1.5; }
-                .author-label { font-weight: bold; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 10pt; margin-right: 8px; }
+                .author-label { font-weight: bold; color: #fff; padding: 2px 8px; font-size: 10pt; margin-right: 8px; }
                 p { margin-bottom: 12px; text-align: justify; }
                 .rev-block { border-left: 3px solid #8e44ad; background-color: #f8f9fa; padding: 8px 10px; margin-bottom: 8px; }
+                .rev-original { color: #999; font-size: 9pt; margin-bottom: 4px; border-bottom: 1px dotted #ddd; padding-bottom: 3px; }
+                .rev-group-header { font-size: 9pt; color: #8e44ad; margin: 12px 0 4px; font-weight: 600; }
                 .doc-title { text-align: center; color: #2c3e50; font-size: 16pt; font-weight: bold; margin-bottom: 6px; }
                 .doc-meta { text-align: center; color: #7f8c8d; font-size: 9pt; margin-bottom: 18px; }
                 ins, .ins-text { color: #27ae60; text-decoration: underline; font-weight: bold; }
@@ -893,42 +923,221 @@
             </style></head><body>
             <div class="doc-title">${escapeHTML(t('docTitle', { name: baseFileName }))}</div>
             <div class="doc-meta">${escapeHTML(t('docMeta', { files: [...processedFileNames].join(' / ') }))}</div>
-            <hr>`;
+            <hr>`);
 
+            let consecutiveEmpty = 0;
             for (let paraId of orderedParagraphIds) {
                 const paraData = combinedRevisionsMap.get(paraId);
                 const modifiedRevs = paraData.revisions.filter(r => r.hasRev);
 
                 if (modifiedRevs.length > 0) {
+                    consecutiveEmpty = 0;
+                    // O2: Multi-author header
+                    if (modifiedRevs.length > 1) {
+                        const uniqueFiles = new Set(modifiedRevs.map(r => r.docName)).size;
+                        parts.push(`<div class="rev-group-header">▸ ${escapeHTML(t('multiAuthorHeader', { count: modifiedRevs.length, files: uniqueFiles }))}</div>`);
+                    }
                     modifiedRevs.forEach(rev => {
                         const firstAuthor = rev.data.authorList[0] || "__unknown__";
                         const c = colorForAuthor(firstAuthor);
                         const authorLabel = rev.data.authorList.map(displayAuthor).join(", ");
-                        
+
+                        // O3: i18n comment label
                         let commentText = '';
                         if (rev.data.commentsList && rev.data.commentsList.length > 0) {
-                             commentText = rev.data.commentsList.map(cmt => `<span class="inline-comment">[註解: ${escapeHTML(cmt.text)}]</span>`).join(" ");
+                             commentText = rev.data.commentsList.map(cmt => `<span class="inline-comment">[${escapeHTML(t('commentLabel'))}: ${escapeHTML(cmt.text)}]</span>`).join(" ");
                         }
 
-                        htmlContent += `<div class="rev-block" style="border-left-color:${c.border};">
+                        // O1: Add original text context
+                        parts.push(`<div class="rev-block" style="border-left-color:${c.border};">
                             <span class="author-label" style="background-color:${c.border};">[${escapeHTML(authorLabel)}]</span>
+                            <div class="rev-original">${escapeHTML(t('originalText'))}: ${escapeHTML(paraData.baseBefore)}</div>
                             ${rev.data.visualAfter} ${commentText}
-                        </div>`;
+                        </div>`);
                     });
                 } else {
+                    // O6: Merge consecutive empty paragraphs
                     let text = escapeHTML(paraData.baseBefore);
-                    if (!text.trim()) text = "&nbsp;";
-                    htmlContent += `<p>${text}</p>`;
+                    if (!text.trim()) {
+                        consecutiveEmpty++;
+                        if (consecutiveEmpty <= 1) {
+                            parts.push(`<p style="margin:0;line-height:0.8;">&nbsp;</p>`);
+                        }
+                    } else {
+                        consecutiveEmpty = 0;
+                        parts.push(`<p>${text}</p>`);
+                    }
                 }
             }
 
-            htmlContent += "</body></html>";
+            parts.push("</body></html>");
+            return '\uFEFF' + parts.join('');
+        }
 
-            const blob = new Blob(['\uFEFF', htmlContent], { type: 'application/msword' });
+        // ==========================================
+        // OOXML helpers for .docx generation
+        // ==========================================
+        function escapeXml(str) {
+            return String(str).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+        }
+
+        function hslToHex(hslStr) {
+            const m = String(hslStr).match(/hsl\(([\d.]+)[\s,]+([\d.]+)%[\s,]+([\d.]+)%\)/);
+            if (!m) return '8E44AD';
+            let h = parseFloat(m[1]) / 360, s = parseFloat(m[2]) / 100, l = parseFloat(m[3]) / 100;
+            const hue2rgb = (p, q, t) => { if (t < 0) t += 1; if (t > 1) t -= 1; if (t < 1/6) return p + (q - p) * 6 * t; if (t < 1/2) return q; if (t < 2/3) return p + (q - p) * (2/3 - t) * 6; return p; };
+            const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+            const r = Math.round(hue2rgb(p, q, h + 1/3) * 255), g = Math.round(hue2rgb(p, q, h) * 255), b = Math.round(hue2rgb(p, q, h - 1/3) * 255);
+            return ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
+        }
+
+        function buildDocxBlob() {
+            const zip = new PizZip();
+
+            zip.file('[Content_Types].xml',
+                '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+                '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+                '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+                '<Default Extension="xml" ContentType="application/xml"/>' +
+                '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' +
+                '</Types>');
+
+            zip.file('_rels/.rels',
+                '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+                '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+                '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>' +
+                '</Relationships>');
+
+            zip.file('word/_rels/document.xml.rels',
+                '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+                '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>');
+
+            // Build document body
+            const bp = []; // body parts
+
+            // Title
+            bp.push('<w:p><w:pPr><w:jc w:val="center"/></w:pPr>' +
+                '<w:r><w:rPr><w:b/><w:sz w:val="32"/><w:szCs w:val="32"/><w:color w:val="2C3E50"/></w:rPr>' +
+                '<w:t>' + escapeXml(t('docTitle', { name: baseFileName })) + '</w:t></w:r></w:p>');
+
+            // Meta
+            bp.push('<w:p><w:pPr><w:jc w:val="center"/></w:pPr>' +
+                '<w:r><w:rPr><w:sz w:val="18"/><w:szCs w:val="18"/><w:color w:val="7F8C8D"/></w:rPr>' +
+                '<w:t>' + escapeXml(t('docMeta', { files: [...processedFileNames].join(' / ') })) + '</w:t></w:r></w:p>');
+
+            // HR
+            bp.push('<w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="4" w:space="1" w:color="auto"/></w:pBdr></w:pPr></w:p>');
+
+            let consecutiveEmpty = 0;
+            for (const paraId of orderedParagraphIds) {
+                const paraData = combinedRevisionsMap.get(paraId);
+                const modifiedRevs = paraData.revisions.filter(r => r.hasRev);
+
+                if (modifiedRevs.length > 0) {
+                    consecutiveEmpty = 0;
+                    if (modifiedRevs.length > 1) {
+                        const uf = new Set(modifiedRevs.map(r => r.docName)).size;
+                        bp.push('<w:p><w:r><w:rPr><w:sz w:val="18"/><w:szCs w:val="18"/><w:color w:val="8E44AD"/><w:b/></w:rPr>' +
+                            '<w:t>\u25b8 ' + escapeXml(t('multiAuthorHeader', { count: modifiedRevs.length, files: uf })) + '</w:t></w:r></w:p>');
+                    }
+                    modifiedRevs.forEach(rev => {
+                        const fa = rev.data.authorList[0] || '__unknown__';
+                        const c = colorForAuthor(fa);
+                        const bHex = hslToHex(c.border);
+                        const al = rev.data.authorList.map(displayAuthor).join(', ');
+
+                        // Author label + original text paragraph
+                        bp.push('<w:p>' +
+                            '<w:pPr><w:pBdr><w:left w:val="single" w:sz="12" w:space="4" w:color="' + bHex + '"/></w:pBdr>' +
+                            '<w:shd w:val="clear" w:color="auto" w:fill="F8F9FA"/></w:pPr>' +
+                            '<w:r><w:rPr><w:b/><w:color w:val="FFFFFF"/><w:shd w:val="clear" w:color="auto" w:fill="' + bHex + '"/></w:rPr>' +
+                            '<w:t xml:space="preserve">[' + escapeXml(al) + '] </w:t></w:r>' +
+                            '<w:r><w:rPr><w:sz w:val="18"/><w:szCs w:val="18"/><w:color w:val="999999"/></w:rPr>' +
+                            '<w:t xml:space="preserve">' + escapeXml(t('originalText')) + ': ' + escapeXml(paraData.baseBefore) + '</w:t></w:r>' +
+                            '</w:p>');
+
+                        // Revision content paragraph with segments
+                        let segRuns = '';
+                        if (rev.data.segments && rev.data.segments.length > 0) {
+                            rev.data.segments.forEach(seg => {
+                                if (seg.type === 'ins') {
+                                    segRuns += '<w:r><w:rPr><w:b/><w:u w:val="single"/><w:color w:val="27AE60"/></w:rPr>' +
+                                        '<w:t xml:space="preserve">' + escapeXml(seg.text) + '</w:t></w:r>';
+                                } else if (seg.type === 'del') {
+                                    segRuns += '<w:r><w:rPr><w:strike/><w:color w:val="E74C3C"/></w:rPr>' +
+                                        '<w:t xml:space="preserve">' + escapeXml(seg.text) + '</w:t></w:r>';
+                                } else {
+                                    segRuns += '<w:r><w:t xml:space="preserve">' + escapeXml(seg.text) + '</w:t></w:r>';
+                                }
+                            });
+                        } else {
+                            segRuns = '<w:r><w:t xml:space="preserve">' + escapeXml(rev.data.after) + '</w:t></w:r>';
+                        }
+
+                        // Comments
+                        let cmtRuns = '';
+                        if (rev.data.commentsList && rev.data.commentsList.length > 0) {
+                            rev.data.commentsList.forEach(cmt => {
+                                cmtRuns += '<w:r><w:rPr><w:color w:val="E67E22"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr>' +
+                                    '<w:t xml:space="preserve"> [' + escapeXml(t('commentLabel')) + ': ' + escapeXml(cmt.text) + ']</w:t></w:r>';
+                            });
+                        }
+
+                        bp.push('<w:p>' +
+                            '<w:pPr><w:pBdr><w:left w:val="single" w:sz="12" w:space="4" w:color="' + bHex + '"/></w:pBdr>' +
+                            '<w:shd w:val="clear" w:color="auto" w:fill="F8F9FA"/></w:pPr>' +
+                            segRuns + cmtRuns + '</w:p>');
+                    });
+                } else {
+                    const text = paraData.baseBefore;
+                    if (!text.trim()) {
+                        consecutiveEmpty++;
+                        if (consecutiveEmpty <= 1) bp.push('<w:p></w:p>');
+                    } else {
+                        consecutiveEmpty = 0;
+                        bp.push('<w:p><w:r><w:t xml:space="preserve">' + escapeXml(text) + '</w:t></w:r></w:p>');
+                    }
+                }
+            }
+
+            const docXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+                '<w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" ' +
+                'xmlns:mo="http://schemas.microsoft.com/office/mac/office/2008/main" ' +
+                'xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" ' +
+                'xmlns:mv="urn:schemas-microsoft-com:mac:vml" ' +
+                'xmlns:o="urn:schemas-microsoft-com:office:office" ' +
+                'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ' +
+                'xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" ' +
+                'xmlns:v="urn:schemas-microsoft-com:vml" ' +
+                'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" ' +
+                'xmlns:w10="urn:schemas-microsoft-com:office:word" ' +
+                'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" ' +
+                'xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml">' +
+                '<w:body>' + bp.join('') +
+                '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr>' +
+                '</w:body></w:document>';
+
+            zip.file('word/document.xml', docXml);
+
+            return zip.generate({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+        }
+
+        function exportToVisualDoc() {
+            const blob = buildDocxBlob();
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = `${baseFileName}${t('suffixReconstructed')}.doc`;
+            link.download = `${baseFileName}${t('suffixReconstructed')}.docx`;
             link.click();
+            setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+        }
+
+        // O4: Preview before download
+        function previewVisualDoc() {
+            const htmlContent = buildVisualDocHTML();
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+            setTimeout(() => URL.revokeObjectURL(url), 5000);
         }
 
         // ==========================================
@@ -940,15 +1149,17 @@
             <style> table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid black; padding: 8px; text-align: left; vertical-align: top; } th { background-color: #D3D3D3; } ins, .ins-text { color: #27ae60; text-decoration: underline; font-weight: bold; } del { color: #e74c3c; text-decoration: line-through; } .badge { color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.78em; margin-right: 4px; } .ins-badge { background-color: #27ae60; } .del-badge { background-color: #e74c3c; } .fmt-badge { background-color: #f39c12; } .move-badge { background-color: #1abc9c; } .comment-box { margin-bottom: 6px; border-left: 2px solid #888; padding-left: 6px; font-size: 0.9em; } .comment-author { font-weight: bold; font-size: 0.9em; }</style></head><body>
             <h2 style="text-align:center;">${escapeHTML(t('wordTableHeading', { name: baseFileName }))}</h2>`;
             const html = preHtml + document.getElementById('revisionTable').outerHTML + "</body></html>";
+            const blob = new Blob(['\uFEFF', html], { type: 'application/msword' });
             const link = document.createElement('a');
-            link.href = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(html);
+            link.href = URL.createObjectURL(blob);
             link.download = `${baseFileName}${t('suffixTable')}.doc`;
             link.click();
+            setTimeout(() => URL.revokeObjectURL(link.href), 1000);
         }
 
         function exportToHTML() {
             const tableHTML = document.getElementById('revisionTable').outerHTML;
-            const style = document.querySelector('style').innerHTML;
+            const style = document.getElementById('appStyle').innerHTML;
             const heading = t('wordTableHeading', { name: baseFileName });
             const fullHTML = `<!DOCTYPE html><html lang="${currentLang === 'zh' ? 'zh-Hant' : 'en'}"><head><meta charset="UTF-8"><title>${escapeHTML(heading)}</title><style>${style}</style></head>
                               <body><div class="container"><h2>${escapeHTML(heading)}</h2><div class="table-wrap">${tableHTML}</div></div></body></html>`;
@@ -956,6 +1167,7 @@
             link.href = URL.createObjectURL(new Blob([fullHTML], { type: 'text/html' }));
             link.download = `${baseFileName}${t('suffixTable')}.html`;
             link.click();
+            setTimeout(() => URL.revokeObjectURL(link.href), 1000);
         }
 
         function exportToCSV() {
@@ -973,11 +1185,34 @@
             link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
             link.download = `${baseFileName}${t('suffixTable')}.csv`;
             link.click();
+            setTimeout(() => URL.revokeObjectURL(link.href), 1000);
         }
 
         function resetUI() {
             if (processedFileNames.size > 0 && !confirm(t('confirmReset'))) return;
-            location.reload();
+            // Programmatic reset instead of location.reload()
+            combinedRevisionsMap.clear();
+            orderedParagraphIds = [];
+            processedFileNames.clear();
+            authorColors.clear();
+            activeAuthorFilter = null;
+            lastStatus = null;
+            document.getElementById('resultSection').style.display = 'none';
+            document.getElementById('resultBody').innerHTML = '';
+            document.getElementById('statsBar').innerHTML = '';
+            document.getElementById('consistencyWarning').classList.add('hidden');
+            document.getElementById('consistencyWarning').innerHTML = '';
+            document.getElementById('fileList').innerHTML = '';
+            document.getElementById('status').innerHTML = '';
+            document.getElementById('searchBox').value = '';
+            document.getElementById('uploadSection').classList.remove('hidden');
+            document.getElementById('fileDropZone').classList.remove('compact');
+            document.getElementById('demoButtons').classList.remove('hidden');
+            document.getElementById('backToUploadBtn').classList.add('hidden');
+            fileInput.value = '';
+            // Reset tab to first
+            const firstTab = document.querySelector('.tab-btn[data-tab="tab-table"]');
+            if (firstTab) switchTab('tab-table', firstTab);
         }
 
         // ==========================================
@@ -1019,6 +1254,14 @@
                                     { type: "del", text: "tomorrow afternoon" },
                                     { type: "ins", text: "next Monday morning" }
                                 ],
+                                segments: [
+                                    { type: 'normal', text: 'This ' },
+                                    { type: 'ins', text: 'key' },
+                                    { type: 'normal', text: ' report is scheduled to be submitted to the General Manager ' },
+                                    { type: 'del', text: 'tomorrow afternoon' },
+                                    { type: 'ins', text: 'next Monday morning' },
+                                    { type: 'normal', text: '.' }
+                                ],
                                 commentsList: [
                                     { author: "Lin Dawei", text: "The boss said the meeting time is postponed, so I changed the date first. Please confirm this final version." }
                                 ]
@@ -1045,6 +1288,14 @@
                                     { type: "del", text: "$50,000" },
                                     { type: "ins", text: "$100,000 in project" },
                                     { type: "fmt" }
+                                ],
+                                segments: [
+                                    { type: 'normal', text: 'For the budget, we will apply for an additional ' },
+                                    { type: 'del', text: '$50,000' },
+                                    { type: 'ins', text: '$100,000' },
+                                    { type: 'normal', text: ' in ' },
+                                    { type: 'ins', text: 'project' },
+                                    { type: 'normal', text: ' funding.' }
                                 ],
                                 commentsList: [
                                     { author: "Chen A-Mei", text: "Finance department reminds us that we must attach a detailed budget breakdown to pass the review!" },
@@ -1074,6 +1325,14 @@
                                     { type: "del", text: "明天下午" },
                                     { type: "ins", text: "下週一早上" }
                                 ],
+                                segments: [
+                                    { type: 'normal', text: '這份' },
+                                    { type: 'ins', text: '關鍵' },
+                                    { type: 'normal', text: '報告預計在' },
+                                    { type: 'del', text: '明天下午' },
+                                    { type: 'ins', text: '下週一早上' },
+                                    { type: 'normal', text: '提交給總經理。' }
+                                ],
                                 commentsList: [
                                     { author: "林大偉", text: "老闆說會議時間延後了，所以我先把日期改掉，請確認這份定稿。" }
                                 ]
@@ -1101,6 +1360,14 @@
                                     { type: "ins", text: "十萬元的專案" },
                                     { type: "fmt" }
                                 ],
+                                segments: [
+                                    { type: 'normal', text: '預算的部份，我們將申請額外' },
+                                    { type: 'del', text: '五萬元' },
+                                    { type: 'ins', text: '十萬元' },
+                                    { type: 'normal', text: '的' },
+                                    { type: 'ins', text: '專案' },
+                                    { type: 'normal', text: '補助。' }
+                                ],
                                 commentsList: [
                                     { author: "陳阿美", text: "財務部提醒，記得要附上詳細的預算明細表才能通過審核喔！" },
                                     { author: "王小明", text: "沒問題，我已經把附件補在信件裡了。" }
@@ -1119,7 +1386,7 @@
 
                 setStatus('statusDone', 'green', false, { n: 1 });
                 document.getElementById('resultSection').style.display = 'block';
-            }, 600); // 模擬解析延遲
+            }, DEMO_DELAY_MS); // Named constant for demo delay
         }
 
         function backToUpload() {
