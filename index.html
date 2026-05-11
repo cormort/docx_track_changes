@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Word 多人修訂合併神器 / Word Multi-Author Revision Merger</title>
-    <style id="appStyle">
+    <title>Word 多人修訂與備註合併神器</title>
+    <style>
         :root {
             --c-bg: #f4f7f9;
             --c-card: #ffffff;
@@ -27,22 +27,23 @@
             line-height: 1.6; margin: 0; padding: 20px; background-color: var(--c-bg); color: #333;
         }
         .container {
-            position: relative;
-            max-width: 1400px; margin: 20px auto; padding: 28px;
+            max-width: 1350px; margin: 20px auto; padding: 28px;
             background-color: var(--c-card);
             border-radius: var(--radius); box-shadow: var(--shadow-md);
+            position: relative;
         }
         h1 { color: var(--c-text); text-align: center; border-bottom: 2px solid var(--c-primary); padding-bottom: 12px; margin: 0 0 24px; }
         .subtitle { text-align: center; color: var(--c-muted); margin-top: -16px; margin-bottom: 24px; font-size: 0.95em; }
 
+        /* Lang Toggle */
         .lang-toggle {
-            position: absolute; top: 18px; right: 18px;
-            background: #ecf0f1; color: #555; border: 1px solid var(--c-border);
-            border-radius: 16px; padding: 5px 12px; font-size: 13px; font-weight: 600;
-            cursor: pointer; font-family: inherit; transition: all 0.15s;
+            position: absolute; top: 20px; right: 28px;
+            background-color: transparent; color: var(--c-primary);
+            border: 2px solid var(--c-primary); border-radius: 20px;
+            padding: 4px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
+            transition: all 0.2s;
         }
-        .lang-toggle:hover { background: var(--c-primary); color: white; border-color: var(--c-primary); }
-        .lang-toggle:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+        .lang-toggle:hover { background-color: var(--c-primary); color: white; }
 
         /* Upload */
         #uploadSection { margin-bottom: 20px; }
@@ -113,6 +114,7 @@
             border-radius: 6px; font-size: 14px; font-family: inherit;
         }
         .toolbar .search-box:focus { outline: none; border-color: var(--c-primary); box-shadow: 0 0 0 3px rgba(52,152,219,.15); }
+        .toolbar-spacer { flex: 1; }
         .btn {
             padding: 8px 14px; border: none; border-radius: 5px; cursor: pointer; font-weight: 600;
             font-family: inherit; font-size: 14px; display: inline-flex; align-items: center; gap: 5px;
@@ -131,9 +133,8 @@
 
         /* Table */
         .table-wrap { max-height: 70vh; overflow: auto; border: 1px solid var(--c-border); border-radius: var(--radius); background: white; }
-        /* NOTE: Column <th> widths must sum to 100% (currently 12+26+24+18+20) */
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        th, td { border-bottom: 1px solid var(--c-border); padding: 12px; text-align: left; vertical-align: top; word-wrap: break-word; }
+        th, td { border-bottom: 1px solid var(--c-border); padding: 12px; text-align: left; vertical-align: top; word-wrap: break-word; white-space: pre-wrap; }
         th { background-color: var(--c-text); color: white; position: sticky; top: 0; z-index: 1; font-weight: 600; }
         tr:hover td { background-color: #f8fbfd; }
         tr.repeated-para-row td { border-top: 1px dashed #d4dde4; }
@@ -143,109 +144,87 @@
         .author-cell { display: flex; flex-direction: column; gap: 4px; }
         .author-tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.85em; font-weight: 600; }
         .row-num { color: var(--c-muted); font-size: 0.8em; }
+        
+        /* Badges & Types */
         .badge { color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.78em; margin-right: 4px; font-weight: 600; }
         .ins-badge { background-color: var(--c-ok); }
         .del-badge { background-color: var(--c-bad); }
         .fmt-badge { background-color: var(--c-warn); }
         .move-badge { background-color: #1abc9c; }
+        .comment-badge { background-color: var(--c-primary); }
+        
+        .type-tag { display: inline-block; padding: 4px 8px; border-radius: 6px; font-size: 0.85em; font-weight: 600; text-align: center; width: 100%; }
+        .type-rev { background-color: #ffebee; color: #c62828; }
+        .type-comment { background-color: #e3f2fd; color: #1565c0; }
+        .type-both { background-color: #f3e5f5; color: #6a1b9a; }
 
         del { color: var(--c-bad); text-decoration: line-through; }
         .ins-text { color: var(--c-ok); text-decoration: underline; font-weight: 600; }
-
-        /* Comments Styling */
-        .comment-box {
-            margin-bottom: 8px; padding: 8px; background: #f9fbfd;
-            border-radius: 6px; border-left: 3px solid;
-            font-size: 0.9em; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-        .comment-author { font-size: 0.85em; font-weight: bold; margin-bottom: 4px; }
+        .comment-mark { background-color: #fff3cd; border-bottom: 2px dotted #ffc107; cursor: help; user-select: none; }
 
         /* Hero */
         .hero-box { background: linear-gradient(135deg, #f8f9fb 0%, #eef2f7 100%); border: 1px solid var(--c-border); border-radius: var(--radius); padding: 32px; text-align: center; }
         .hero-box h3 { margin-top: 0; color: var(--c-text); }
         .hero-box p { color: #555; font-size: 1.05em; }
 
-        /* Consistency Warning */
-        .consistency-warn {
-            background: #fff8e1; border: 1px solid #f39c12; border-left: 4px solid var(--c-warn);
-            border-radius: var(--radius); padding: 12px 16px; margin-bottom: 14px;
-            color: #6b4f00; font-size: 0.92em;
-        }
-        .consistency-warn .warn-title { font-weight: 700; margin-bottom: 4px; color: #b07700; }
-        .consistency-warn .warn-hint { color: #7a5d00; margin-bottom: 4px; }
-        .consistency-warn details { margin-top: 6px; }
-        .consistency-warn summary { cursor: pointer; font-size: 0.9em; color: #555; user-select: none; }
-        .consistency-warn .warn-list { margin: 6px 0 0 20px; padding: 0; font-size: 0.9em; }
-        .consistency-warn .warn-list li { margin-bottom: 3px; word-break: break-word; }
-        .consistency-warn .warn-list code { background: rgba(255,255,255,.6); padding: 0 4px; border-radius: 3px; }
-
-        @media (max-width: 900px) {
-            .container { padding: 16px; margin: 8px; padding-top: 48px; }
-            .lang-toggle { top: 12px; right: 12px; }
+        @media (max-width: 720px) {
+            .container { padding: 16px; margin: 8px; }
             .tabs-row { flex-wrap: wrap; }
             .tab-actions { margin-left: 0; width: 100%; justify-content: flex-end; }
             th, td { padding: 8px; font-size: 0.9em; }
             table { table-layout: auto; }
+            .lang-toggle { top: 10px; right: 10px; }
         }
     </style>
-    <!-- Include PizZip for docx parsing  TODO: add integrity="sha256-..." for SRI -->
-    <script src="https://cdn.jsdelivr.net/npm/pizzip@3.1.5/dist/pizzip.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pizzip@3.1.5/dist/pizzip.min.js"></script>
 </head>
 <body>
 
     <div class="container">
-        <button class="lang-toggle" id="langToggle" aria-label="Switch language">🌐 EN</button>
-        <h1 data-i18n="title">Word 多人修訂合併神器</h1>
-        <p class="subtitle" data-i18n="subtitle">將多份來自同一原稿的 .docx 修訂版本合併為一份對照表 / 重構文件</p>
+        <button id="langBtn" class="lang-toggle" onclick="toggleLanguage()">English</button>
+        <h1 data-i18n="mainTitle">Word 多人修訂與備註合併神器</h1>
+        <p class="subtitle" data-i18n="subTitle">將多份來自同一原稿的 .docx 修訂與備註版本合併為一份對照表 / 重構文件</p>
 
         <div id="uploadSection">
             <div id="fileDropZone" onclick="document.getElementById('wordFiles').click();" role="button" tabindex="0"
                  onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('wordFiles').click();}">
-                <span data-i18n-html="dropMain">將 <b>多個</b> .docx 檔案拖曳至此處，或點擊選擇檔案</span>
-                <br><span style="font-size:0.85em; color:#888;" data-i18n="dropHint">(請確保上傳的檔案皆源自同一份原始文件)</span>
+                <span data-i18n="dropTextMain">將 <b>多個</b> .docx 檔案拖曳至此處，或點擊選擇檔案</span>
+                <br><span style="font-size:0.85em; color:#888;" data-i18n="dropTextSub">(請確保上傳的檔案皆源自同一份原始文件)</span>
                 <input type="file" id="wordFiles" accept=".docx" multiple class="hidden">
             </div>
-            <!-- Demo Buttons -->
-            <div id="demoButtons" style="display: flex; gap: 8px; margin-top: 10px;">
-                <button class="btn btn-ghost" style="flex:1; justify-content: center; border: 1px dashed var(--c-primary);" onclick="loadDemoData('zh')">🪄 載入中文範例</button>
-                <button class="btn btn-ghost" style="flex:1; justify-content: center; border: 1px dashed var(--c-primary);" onclick="loadDemoData('en')">🪄 English Demo</button>
-            </div>
-            <!-- Back to Upload Button (shown after demo loaded) -->
-            <button id="backToUploadBtn" class="btn btn-ghost hidden" style="margin-top: 10px; width: 100%; justify-content: center; border: 1px dashed var(--c-primary);" onclick="backToUpload()" data-i18n="backToUpload">⬅️ 回到載入檔案</button>
         </div>
 
         <div id="status"></div>
         <div id="fileList"></div>
 
-        <div id="resultSection" role="region" aria-label="Results">
-            <div id="consistencyWarning" class="consistency-warn hidden" role="alert"></div>
+        <div id="resultSection" role="region" aria-label="解析結果">
             <div class="stats-bar" id="statsBar"></div>
 
             <div class="tabs-row" role="tablist">
-                <button class="tab-btn active" role="tab" aria-selected="true" id="tabBtnTable" data-tab="tab-table" data-i18n="tabTable">👁️ 檢視與匯出表格</button>
-                <button class="tab-btn" role="tab" aria-selected="false" id="tabBtnDoc" data-tab="tab-doc" data-i18n="tabDoc">📄 重構合併文件</button>
+                <button class="tab-btn active" role="tab" aria-selected="true" data-tab="tab-table" data-i18n="tabTable">👁️ 檢視與匯出表格</button>
+                <button class="tab-btn" role="tab" aria-selected="false" data-tab="tab-doc" data-i18n="tabDoc">📄 重構合併文件</button>
                 <div class="tab-actions">
-                    <button class="btn btn-ghost" onclick="document.getElementById('wordFiles').click()" data-i18n="addFiles">➕ 加入更多檔案</button>
-                    <button class="btn btn-reset" onclick="resetUI()" data-i18n="resetAll">🔄 全部清除</button>
+                    <button class="btn btn-ghost" onclick="document.getElementById('wordFiles').click()" data-i18n="btnAdd">➕ 加入更多檔案</button>
+                    <button class="btn btn-reset" onclick="resetUI()" data-i18n="btnClear">🔄 全部清除</button>
                 </div>
             </div>
 
-            <div id="tab-table" class="tab-content active" role="tabpanel" aria-labelledby="tabBtnTable">
+            <div id="tab-table" class="tab-content active" role="tabpanel">
                 <div class="toolbar">
-                    <input type="text" class="search-box" id="searchBox" data-i18n-placeholder="searchPlaceholder" placeholder="🔍 在修訂內容中搜尋..." aria-label="Search">
-                    <button class="btn btn-word" onclick="exportToWordTable()" data-i18n="exportWord">📝 匯出 Word</button>
-                    <button class="btn btn-html" onclick="exportToHTML()" data-i18n="exportHTML">🌐 匯出 HTML</button>
-                    <button class="btn btn-csv" onclick="exportToCSV()" data-i18n="exportCSV">📊 匯出 CSV</button>
+                    <input type="text" class="search-box" id="searchBox" data-i18n-placeholder="searchPH" placeholder="🔍 在修訂或備註中搜尋..." aria-label="搜尋">
+                    <button class="btn btn-word" onclick="exportToWordTable()" data-i18n="btnExportWord">📝 匯出 Word</button>
+                    <button class="btn btn-html" onclick="exportToHTML()" data-i18n="btnExportHtml">🌐 匯出 HTML</button>
+                    <button class="btn btn-csv" onclick="exportToCSV()" data-i18n="btnExportCsv">📊 匯出 CSV</button>
                 </div>
                 <div class="table-wrap">
                     <table id="revisionTable">
                         <thead>
                             <tr>
                                 <th style="width:12%" data-i18n="thAuthor">作者 + 序號</th>
-                                <th style="width:26%" data-i18n="thAfter">追蹤修訂後的段落文字 (含增刪標記)</th>
-                                <th style="width:24%" data-i18n="thBefore">追蹤修訂前的原始段落</th>
-                                <th style="width:18%" data-i18n="thNote">追蹤修正的說明</th>
-                                <th style="width:20%" data-i18n="thComment">註解內容</th>
+                                <th style="width:8%; text-align:center;" data-i18n="thType">類型</th>
+                                <th style="width:30%" data-i18n="thPara">段落文字 (含修訂與備註)</th>
+                                <th style="width:23%" data-i18n="thBase">原始段落</th>
+                                <th style="width:27%" data-i18n="thNote">說明 (修訂標記/備註內容)</th>
                             </tr>
                         </thead>
                         <tbody id="resultBody"></tbody>
@@ -253,16 +232,12 @@
                 </div>
             </div>
 
-            <div id="tab-doc" class="tab-content" role="tabpanel" aria-labelledby="tabBtnDoc">
+            <div id="tab-doc" class="tab-content" role="tabpanel">
                 <div class="hero-box">
                     <h3 data-i18n="heroTitle">擺脫 XML 衝突！全新重構乾淨的合併文件</h3>
-                    <p data-i18n-html="heroDesc">此功能避開了 Word 底層極易損毀的追蹤修訂機制，改為直接讀取 HTML 視覺資料。<br><b>系統將以原文件的段落順序，重新生成一份完整且不會跑版的 Word 文件。</b></p>
-                    <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
-                        <button class="btn btn-primary" style="margin:0;" onclick="exportToVisualDoc()" data-i18n="heroBtn">📄 下載重構的合併文件 (.docx)</button>
-                        <button class="btn btn-ghost" style="font-size:15px; padding:12px 24px;" onclick="previewVisualDoc()" data-i18n="previewBtn">👁️ 預覽重構文件</button>
-                    </div>
-                    <p style="font-size: 0.9em; color: var(--c-muted);" data-i18n="heroFoot">※ 此檔案保留了文件的原始閱讀動線，未修改的段落會保持原樣；有多人修改的段落，會自動分列並用顏色標示作者與增刪內容。</p>
-                    <p style="font-size: 0.85em; color: var(--c-warn);" data-i18n="wordCompatNote">⚠️ 此檔案為 HTML 格式，建議使用 Microsoft Word 開啟以獲得最佳效果。</p>
+                    <p data-i18n="heroP1">此功能避開了 Word 底層極易損毀的追蹤修訂機制，改為直接讀取 HTML 視覺資料。<br><b>系統將以原文件的段落順序，重新生成一份完整且不會跑版的 Word 文件。</b></p>
+                    <button class="btn btn-primary" onclick="exportToVisualDoc()" data-i18n="btnDownloadDoc">📄 下載重構的合併文件 (.doc)</button>
+                    <p style="font-size: 0.9em; color: var(--c-muted);" data-i18n="heroP2">※ 此檔案保留了文件的原始閱讀動線，包含備註也會整合標示；有多人修改的段落，會自動分列並用顏色標示作者與內容。</p>
                 </div>
             </div>
         </div>
@@ -270,162 +245,128 @@
 
     <script>
         // ==========================================
-        // i18n
+        // i18n Translations Dictionary
         // ==========================================
-        const I18N = {
+        const dict = {
             zh: {
-                title: 'Word 多人修訂合併神器',
-                subtitle: '將多份來自同一原稿的 .docx 修訂版本合併為一份對照表 / 重構文件',
-                dropMain: '將 <b>多個</b> .docx 檔案拖曳至此處，或點擊選擇檔案',
-                dropHint: '(請確保上傳的檔案皆源自同一份原始文件)',
-                demoBtn: '🪄 點我載入測試 Demo 資料',
-                tabTable: '👁️ 檢視與匯出表格',
-                tabDoc: '📄 重構合併文件',
-                addFiles: '➕ 加入更多檔案',
-                resetAll: '🔄 全部清除',
-                searchPlaceholder: '🔍 在修訂內容中搜尋...',
-                exportWord: '📝 匯出 Word',
-                exportHTML: '🌐 匯出 HTML',
-                exportCSV: '📊 匯出 CSV',
-                thAuthor: '作者 + 序號',
-                thAfter: '追蹤修訂後的段落文字 (含增刪標記)',
-                thBefore: '追蹤修訂前的原始段落',
-                thNote: '追蹤修正的說明',
-                thComment: '註解內容',
-                heroTitle: '擺脫 XML 衝突！全新重構乾淨的合併文件',
-                heroDesc: '此功能避開了 Word 底層極易損毀的追蹤修訂機制，改為直接讀取 HTML 視覺資料。<br><b>系統將以原文件的段落順序，重新生成一份完整且不會跑版的 Word 文件。</b>',
-                heroBtn: '📄 下載重構的合併文件 (.docx)',
-                heroFoot: '※ 此檔案保留了文件的原始閱讀動線，未修改的段落會保持原樣；有多人修改的段落，會自動分列並用顏色標示作者與增刪內容。',
-                statFiles: '檔案數',
-                statModified: '修改/註解段落',
-                statRevisions: '修訂與註解數',
-                noRevisions: '尚無修訂或註解',
-                emptyState: '這些檔案中沒有偵測到任何追蹤修訂或註解內容。',
-                badgeIns: '新增',
-                badgeDel: '刪除',
-                badgeFmt: '格式',
-                badgeMoveIn: '移入',
-                badgeMoveOut: '移出',
-                statusUploadDocx: '請上傳 .docx 格式的檔案',
-                statusAllDuplicate: '所有檔案已處理過 (略過 {n} 份重複檔案)',
-                statusAnalyzing: '正在深度分析 {n} 份檔案...',
-                statusMissingXml: '{f} 缺少 document.xml',
-                statusError: '解析錯誤：{m}',
-                statusErrorDefault: '請確認檔案皆為標準 Word 檔',
-                statusDone: '解析完成！共處理 {n} 份檔案',
-                statusDoneSkip: '解析完成！共 {n} 份檔案 (本次略過 {s} 份重複)',
-                consistencyWarning: '偵測到 {n} 個段落的原稿在不同檔案間不一致',
-                consistencyHint: '可能原因：有作者未全程使用「追蹤修訂」直接修改了原文，或檔案並非源自同一份原稿。受影響段落的合併結果可能不可靠。',
-                consistencyShowDetails: '顯示詳細衝突位置',
-                consistencyConflictLine: '「{preview}」 vs 「{otherPreview}」 — 涉及檔案：{files}',
-                consistencyMore: '...另有 {n} 個衝突段落未顯示',
-                confirmReset: '確定要清除所有已解析的檔案嗎？',
-                docTitle: '多人修訂重構文件：{name}',
-                docMeta: '來源檔案：{files}',
-                wordTableHeading: '多人追蹤修訂對照表 — {name}',
-                unknownAuthor: '未知',
-                suffixReconstructed: '_重構合併版',
-                suffixTable: '_修訂對照表',
-                toggleLabel: '🌐 EN',
-                backToUpload: '⬅️ 回到載入檔案',
-                commentLabel: '註解',
-                previewBtn: '👁️ 預覽重構文件',
-                wordCompatNote: '⚠️ 此檔案為 HTML 格式，建議使用 Microsoft Word 開啟以獲得最佳效果。',
-                multiAuthorHeader: '以下段落有 {count} 位作者的修訂 (來自 {files} 份檔案)',
-                originalText: '原文'
+                mainTitle: "Word 多人修訂與備註合併神器",
+                subTitle: "將多份來自同一原稿的 .docx 修訂與備註版本合併為一份對照表 / 重構文件",
+                dropTextMain: "將 <b>多個</b> .docx 檔案拖曳至此處，或點擊選擇檔案",
+                dropTextSub: "(請確保上傳的檔案皆源自同一份原始文件)",
+                tabTable: "👁️ 檢視與匯出表格",
+                tabDoc: "📄 重構合併文件",
+                btnAdd: "➕ 加入更多檔案",
+                btnClear: "🔄 全部清除",
+                searchPH: "🔍 在修訂或備註中搜尋...",
+                btnExportWord: "📝 匯出 Word",
+                btnExportHtml: "🌐 匯出 HTML",
+                btnExportCsv: "📊 匯出 CSV",
+                thAuthor: "作者 + 序號",
+                thType: "類型",
+                thPara: "段落文字 (含修訂與備註)",
+                thBase: "原始段落",
+                thNote: "說明 (修訂標記/備註內容)",
+                heroTitle: "擺脫 XML 衝突！全新重構乾淨的合併文件",
+                heroP1: "此功能避開了 Word 底層極易損毀的追蹤修訂機制，改為直接讀取 HTML 視覺資料。<br><b>系統將以原文件的段落順序，重新生成一份完整且不會跑版的 Word 文件。</b>",
+                btnDownloadDoc: "📄 下載重構的合併文件 (.doc)",
+                heroP2: "※ 此檔案保留了文件的原始閱讀動線，包含備註也會整合標示；有多人修改的段落，會自動分列並用顏色標示作者與內容。",
+                // Dynamic labels
+                statFiles: "檔案數",
+                statParas: "調整段落",
+                statRevs: "變更筆數",
+                statNoRev: "尚無修訂/備註",
+                emptyRow: "這些檔案中沒有偵測到任何修訂或備註內容。",
+                typeRev: "修訂",
+                typeComment: "備註",
+                typeBoth: "修訂+備註",
+                badgeInsBlock: "整段新增",
+                badgeDelBlock: "整段刪除",
+                badgeIns: "新增",
+                badgeDel: "刪除",
+                badgeFmt: "格式",
+                badgeMoveIn: "移入",
+                badgeMoveOut: "移出",
+                authorUnknown: "未知",
+                confirmClear: "確定要清除所有已解析的檔案嗎？",
+                exportDocTitle: "多人修訂與備註重構文件：",
+                exportDocSrc: "來源檔案：",
+                exportTableTitle: "多人追蹤修訂與備註對照表 — "
             },
             en: {
-                title: 'Word Multi-Author Revision Merger',
-                subtitle: 'Merge multiple revised .docx versions of the same source into a comparison table or a reconstructed document',
-                dropMain: 'Drop <b>multiple</b> .docx files here, or click to select',
-                dropHint: '(All files must originate from the same source document)',
-                demoBtn: '🪄 Click to load Demo data',
-                tabTable: '👁️ Comparison Table',
-                tabDoc: '📄 Reconstructed Document',
-                addFiles: '➕ Add more files',
-                resetAll: '🔄 Reset',
-                searchPlaceholder: '🔍 Search revision/comments content...',
-                exportWord: '📝 Export Word',
-                exportHTML: '🌐 Export HTML',
-                exportCSV: '📊 Export CSV',
-                thAuthor: 'Author + #',
-                thAfter: 'Revised paragraph (with markup)',
-                thBefore: 'Original paragraph',
-                thNote: 'Revision details',
-                thComment: 'Comments',
-                heroTitle: 'Bypass XML conflicts — get a clean reconstructed merge',
-                heroDesc: 'This feature sidesteps Word\'s fragile native track-change machinery and reads the HTML view directly.<br><b>The system rebuilds a clean Word document in the original paragraph order — no broken layouts.</b>',
-                heroBtn: '📄 Download reconstructed merged document (.docx)',
-                heroFoot: '※ The file preserves the original reading flow. Unmodified paragraphs stay as-is; paragraphs with multiple revisions are split into author-colored blocks.',
-                statFiles: 'Files',
-                statModified: 'Modified paragraphs',
-                statRevisions: 'Revs & Comments',
-                noRevisions: 'No revisions',
-                emptyState: 'No tracked changes or comments were detected in these files.',
-                badgeIns: 'Insert',
-                badgeDel: 'Delete',
-                badgeFmt: 'Format',
-                badgeMoveIn: 'Move in',
-                badgeMoveOut: 'Move out',
-                statusUploadDocx: 'Please upload .docx files',
-                statusAllDuplicate: 'All files were already processed (skipped {n} duplicate)',
-                statusAnalyzing: 'Analyzing {n} file(s)...',
-                statusMissingXml: '{f} is missing document.xml',
-                statusError: 'Parse error: {m}',
-                statusErrorDefault: 'Please ensure files are standard Word documents',
-                statusDone: 'Done! Processed {n} file(s)',
-                statusDoneSkip: 'Done! {n} total file(s) ({s} duplicate skipped)',
-                consistencyWarning: 'Detected {n} paragraph(s) whose source text differs across files',
-                consistencyHint: 'Likely cause: someone edited the original text without using Track Changes, or the files come from different sources. Merge results for affected paragraphs may be unreliable.',
-                consistencyShowDetails: 'Show conflict details',
-                consistencyConflictLine: '"{preview}" vs "{otherPreview}" — files: {files}',
-                consistencyMore: '...{n} more conflicting paragraph(s) not shown',
-                confirmReset: 'Clear all parsed files?',
-                docTitle: 'Multi-author reconstructed document: {name}',
-                docMeta: 'Source files: {files}',
-                wordTableHeading: 'Multi-Author Revision Comparison — {name}',
-                unknownAuthor: 'Unknown',
-                suffixReconstructed: '_reconstructed',
-                suffixTable: '_revisions_table',
-                toggleLabel: '🌐 中',
-                backToUpload: '⬅️ Back to Load File',
-                commentLabel: 'Comment',
-                previewBtn: '👁️ Preview reconstructed doc',
-                wordCompatNote: '⚠️ This file is in HTML format. For best results, open it with Microsoft Word.',
-                multiAuthorHeader: 'This paragraph has {count} revision(s) from {files} file(s)',
-                originalText: 'Original'
+                mainTitle: "Word Revisions & Comments Merge Tool",
+                subTitle: "Merge multiple .docx revisions/comments from the same draft into a comparison table / reconstructed document",
+                dropTextMain: "Drag and drop <b>multiple</b> .docx files here, or click to select files",
+                dropTextSub: "(Please ensure all files originate from the same source document)",
+                tabTable: "👁️ View & Export Table",
+                tabDoc: "📄 Reconstruct Merged Doc",
+                btnAdd: "➕ Add More Files",
+                btnClear: "🔄 Clear All",
+                searchPH: "🔍 Search revisions or comments...",
+                btnExportWord: "📝 Export Word",
+                btnExportHtml: "🌐 Export HTML",
+                btnExportCsv: "📊 Export CSV",
+                thAuthor: "Author + No.",
+                thType: "Type",
+                thPara: "Paragraph (with Marks)",
+                thBase: "Original Paragraph",
+                thNote: "Details (Revisions/Comments)",
+                heroTitle: "Avoid XML Conflicts! Reconstruct Clean Merged Documents",
+                heroP1: "This feature bypasses Word's fragile track-changes mechanism by reading visual HTML data.<br><b>The system generates a completely stable Word document in the original paragraph order.</b>",
+                btnDownloadDoc: "📄 Download Reconstructed Doc (.doc)",
+                heroP2: "※ Preserves the original reading flow and integrates comments. Paragraphs modified by multiple authors are separated and color-coded.",
+                // Dynamic labels
+                statFiles: "Files",
+                statParas: "Modified Paras",
+                statRevs: "Total Changes",
+                statNoRev: "No Revisions/Comments",
+                emptyRow: "No revisions or comments detected in these files.",
+                typeRev: "Revision",
+                typeComment: "Comment",
+                typeBoth: "Rev+Comment",
+                badgeInsBlock: "Block Insert",
+                badgeDelBlock: "Block Delete",
+                badgeIns: "Insert",
+                badgeDel: "Delete",
+                badgeFmt: "Format",
+                badgeMoveIn: "Move In",
+                badgeMoveOut: "Move Out",
+                authorUnknown: "Unknown",
+                confirmClear: "Are you sure you want to clear all parsed files?",
+                exportDocTitle: "Multi-user Revisions & Comments Doc: ",
+                exportDocSrc: "Source files: ",
+                exportTableTitle: "Revisions & Comments Comparison — "
             }
         };
 
-        const STORAGE_LANG_KEY = 'docx-merger-lang';
-        let currentLang = (() => {
-            const saved = localStorage.getItem(STORAGE_LANG_KEY);
-            if (saved && I18N[saved]) return saved;
-            return navigator.language && navigator.language.toLowerCase().startsWith('zh') ? 'zh' : 'en';
-        })();
+        let currentLang = 'zh';
 
-        function t(key, params = {}) {
-            let s = (I18N[currentLang] && I18N[currentLang][key]) || I18N.zh[key] || key;
-            for (const k in params) s = s.replace(new RegExp(`\\{${k}\\}`, 'g'), params[k]);
-            return s;
+        function t(key) {
+            return dict[currentLang][key] || key;
         }
 
-        function applyI18n() {
-            document.documentElement.lang = currentLang === 'zh' ? 'zh-Hant' : 'en';
+        function toggleLanguage() {
+            currentLang = currentLang === 'zh' ? 'en' : 'zh';
+            document.getElementById('langBtn').innerText = currentLang === 'zh' ? 'English' : '中文';
+            
+            // Update static HTML elements
             document.querySelectorAll('[data-i18n]').forEach(el => {
-                el.textContent = t(el.dataset.i18n);
-            });
-            document.querySelectorAll('[data-i18n-html]').forEach(el => {
-                el.innerHTML = t(el.dataset.i18nHtml);
+                el.innerHTML = t(el.getAttribute('data-i18n'));
             });
             document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-                el.placeholder = t(el.dataset.i18nPlaceholder);
+                el.placeholder = t(el.getAttribute('data-i18n-placeholder'));
             });
-            document.getElementById('langToggle').textContent = t('toggleLabel');
+
+            // Re-render dynamic elements
+            if (processedFileNames.size > 0 || orderedParagraphIds.length > 0) {
+                renderTable();
+                renderStats();
+            } else {
+                renderStats(); // Update stat text even if empty
+            }
         }
 
         // ==========================================
-        // State
+        // App State
         // ==========================================
         let combinedRevisionsMap = new Map();
         let orderedParagraphIds = [];
@@ -433,13 +374,11 @@
         let baseFileName = "merged_revisions";
         let authorColors = new Map();
         let activeAuthorFilter = null;
-        const DEMO_DELAY_MS = 600;
 
         const fileInput = document.getElementById('wordFiles');
         const statusDiv = document.getElementById('status');
         const fileListDiv = document.getElementById('fileList');
         const dropZone = document.getElementById('fileDropZone');
-        let lastStatus = null; // { textKey, params, color, spinner }
 
         dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
         dropZone.addEventListener('dragleave', e => { e.preventDefault(); dropZone.classList.remove('dragover'); });
@@ -461,22 +400,8 @@
 
         document.getElementById('searchBox').addEventListener('input', applyFilters);
 
-        document.getElementById('langToggle').addEventListener('click', () => {
-            currentLang = currentLang === 'zh' ? 'en' : 'zh';
-            localStorage.setItem(STORAGE_LANG_KEY, currentLang);
-            applyI18n();
-            // Re-render dynamic content that contains i18n strings
-            if (lastStatus) setStatus(lastStatus.textKey, lastStatus.color, lastStatus.spinner, lastStatus.params);
-            if (orderedParagraphIds.length > 0) {
-                renderTable();
-                renderStats();
-                renderConsistencyWarning();
-                applyFilters();
-            }
-        });
-
         function escapeHTML(str) {
-            return String(str).replace(/[&<>'"]/g, ch => ({ '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;' }[ch]));
+            return String(str).replace(/[&<>'"]/g, t => ({ '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;' }[t]));
         }
 
         function switchTab(tabId, btn) {
@@ -498,17 +423,12 @@
 
         function colorForAuthor(name) {
             if (authorColors.has(name)) return authorColors.get(name);
-            // Golden angle distribution for better hue separation between authors
-            const idx = authorColors.size;
-            const GOLDEN_ANGLE = 137.508;
-            const hue = Math.round((idx * GOLDEN_ANGLE) % 360);
+            let h = 0;
+            for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+            const hue = h % 360;
             const color = { bg: `hsl(${hue} 65% 92%)`, fg: `hsl(${hue} 55% 30%)`, border: `hsl(${hue} 55% 50%)` };
             authorColors.set(name, color);
             return color;
-        }
-
-        function displayAuthor(a) {
-            return a === '__unknown__' ? t('unknownAuthor') : a;
         }
 
         async function handleFiles(files) {
@@ -516,11 +436,11 @@
             const validFiles = allDocx.filter(f => !processedFileNames.has(f.name));
             const skipped = allDocx.length - validFiles.length;
 
-            if (allDocx.length === 0) { setStatus('statusUploadDocx', 'red'); return; }
-            if (validFiles.length === 0) { setStatus('statusAllDuplicate', 'orange', false, { n: skipped }); return; }
+            if (allDocx.length === 0) { setStatus(currentLang==='zh'?'請上傳 .docx 格式的檔案':'Please upload .docx files', 'red'); return; }
+            if (validFiles.length === 0) { setStatus(currentLang==='zh'?`已處理過 (略過 ${skipped} 份重複)`:`Already processed (Skipped ${skipped})`, 'orange'); return; }
 
             document.getElementById('uploadSection').classList.add('hidden');
-            setStatus('statusAnalyzing', 'orange', true, { n: validFiles.length });
+            setStatus(currentLang==='zh'?`正在深度分析 ${validFiles.length} 份檔案...`:`Analyzing ${validFiles.length} files...`, 'orange', true);
 
             try {
                 if (processedFileNames.size === 0) {
@@ -529,64 +449,36 @@
 
                 for (let file of validFiles) {
                     const arrayBuffer = await readFileAsArrayBuffer(file);
-                    let docxZip;
-                    try {
-                        docxZip = new PizZip(arrayBuffer);
-                    } catch (zipErr) {
-                        throw new Error(`${file.name}: ${zipErr.message}`);
-                    }
-
-                    // ==========================================
-                    // 1. 解析該檔案中的註解 (Comments)
-                    // ==========================================
-                    const commentsMap = new Map();
-                    const commentsXmlFile = docxZip.file("word/comments.xml");
-                    if (commentsXmlFile) {
-                        const commentsXml = new DOMParser().parseFromString(commentsXmlFile.asText(), "application/xml");
-                        const commentNodes = commentsXml.getElementsByTagName('w:comment');
-                        for (let cNode of Array.from(commentNodes)) {
-                            const id = cNode.getAttribute('w:id');
-                            const author = cNode.getAttribute('w:author') || '__unknown__';
-                            // 將該註解內所有的文字節點合併
-                            const tNodes = cNode.getElementsByTagName('w:t');
-                            let text = "";
-                            for (let txt of Array.from(tNodes)) text += txt.textContent;
-                            if (id) commentsMap.set(id, { author, text });
+                    const docxZip = new PizZip(arrayBuffer);
+                    const docXmlFile = docxZip.file("word/document.xml");
+                    if (!docXmlFile) throw new Error(`${file.name} missing document.xml`);
+                    
+                    // Comments
+                    const commentsFile = docxZip.file("word/comments.xml");
+                    let commentsMap = {};
+                    if (commentsFile) {
+                        const commentsXml = new DOMParser().parseFromString(commentsFile.asText(), "application/xml");
+                        const cNodes = commentsXml.getElementsByTagName('w:comment');
+                        for (let cNode of cNodes) {
+                            commentsMap[cNode.getAttribute('w:id')] = {
+                                author: cNode.getAttribute('w:author') || t('authorUnknown'),
+                                text: plainText(cNode)
+                            };
                         }
                     }
 
-                    // ==========================================
-                    // 2. 解析主文件與追蹤修訂
-                    // ==========================================
-                    const docXmlFile = docxZip.file("word/document.xml");
-                    if (!docXmlFile) throw new Error(t('statusMissingXml', { f: file.name }));
                     const docXml = new DOMParser().parseFromString(docXmlFile.asText(), "application/xml");
                     const paragraphs = docXml.getElementsByTagName('w:p');
 
                     let pIndex = 0;
-                    for (let pNode of Array.from(paragraphs)) {
-                        // 傳入 commentsMap 一起解析
+                    for (let pNode of paragraphs) {
                         const revData = extractRevisions(pNode, commentsMap);
-                        // w14:paraId 是 Word 自動指派且跨儲存保留的段落唯一識別碼；
-                        // 缺少時 fallback 到位置（含檔名避免跨檔碰撞）
-                        const paraId = pNode.getAttribute("w14:paraId")
-                                    || `pos_${file.name}_${pIndex}`;
-                        const beforeText = revData ? revData.before : plainText(pNode);
+                        const paraId = pNode.getAttribute("w14:paraId") || `pos_${pIndex}`;
 
                         if (!combinedRevisionsMap.has(paraId)) {
-                            combinedRevisionsMap.set(paraId, {
-                                baseBefore: beforeText,
-                                baseFile: file.name,
-                                revisions: []
-                            });
+                            let baseText = revData ? revData.before : plainText(pNode);
+                            combinedRevisionsMap.set(paraId, { baseBefore: baseText, revisions: [] });
                             orderedParagraphIds.push(paraId);
-                        } else {
-                            // 同一個 paraId 在另一個檔出現了不同的「原稿文字」→ 一致性衝突
-                            const entry = combinedRevisionsMap.get(paraId);
-                            if (entry.baseBefore !== beforeText) {
-                                if (!entry.conflicts) entry.conflicts = [];
-                                entry.conflicts.push({ file: file.name, text: beforeText });
-                            }
                         }
 
                         combinedRevisionsMap.get(paraId).revisions.push({
@@ -594,138 +486,150 @@
                             data: revData,
                             hasRev: revData !== null
                         });
-
                         pIndex++;
                     }
                     processedFileNames.add(file.name);
                 }
-                fileInput.value = ''; // #14: allow re-selecting same file
 
                 renderTable();
                 renderStats();
                 renderFileList();
-                renderConsistencyWarning();
                 applyFilters();
 
-                if (skipped > 0) setStatus('statusDoneSkip', 'green', false, { n: processedFileNames.size, s: skipped });
-                else setStatus('statusDone', 'green', false, { n: processedFileNames.size });
-
+                const msg = currentLang === 'zh' 
+                    ? `解析完成！共處理 ${processedFileNames.size} 份檔案`
+                    : `Done! Processed ${processedFileNames.size} files`;
+                setStatus(msg, 'green');
                 document.getElementById('resultSection').style.display = 'block';
                 dropZone.classList.add('compact');
                 document.getElementById('uploadSection').classList.remove('hidden');
 
             } catch (err) {
                 console.error(err);
-                setStatus('statusError', 'red', false, { m: err.message || t('statusErrorDefault') });
+                setStatus(`Error: ${err.message}`, 'red');
                 document.getElementById('uploadSection').classList.remove('hidden');
             }
         }
 
-        function setStatus(textKey, color, spinner = false, params = {}) {
-            lastStatus = { textKey, color, spinner, params };
+        function setStatus(text, color, spinner = false) {
             statusDiv.style.color = color;
-            const text = I18N[currentLang][textKey] !== undefined ? t(textKey, params) : textKey;
             statusDiv.innerHTML = (spinner ? '<span class="spinner"></span>' : '') + escapeHTML(text);
         }
 
         function plainText(pNode) {
-            const tNodes = pNode.getElementsByTagName("w:t");
+            const getLocal = (n) => (n.tagName ? n.tagName.toLowerCase().replace(/^.*:/, '') : '');
+            const tNodes = pNode.getElementsByTagName("*");
             let s = "";
-            for (let i = 0; i < tNodes.length; i++) s += tNodes[i].textContent;
+            for (let i = 0; i < tNodes.length; i++) {
+                if (getLocal(tNodes[i]) === "t") s += tNodes[i].textContent;
+            }
             return s;
         }
 
         function extractRevisions(pNode, commentsMap) {
             let before = "", after = "", visualAfter = "";
             const authors = new Set();
-            const notes = []; // structured: {type: 'ins'|'del'|'fmt'|'moveIn'|'moveOut', text?: string}
-            const segments = []; // structured segments for docx generation
-            const commentsList = []; // 存放該段落的註解
-            const seenCommentIds = new Set();
+            const notesData = [];
+            const types = new Set();
             let hasRev = false;
 
-            function authorOf(node) {
-                return node.getAttribute("w:author") || "__unknown__";
+            const getLocal = (n) => (n.tagName ? n.tagName.toLowerCase().replace(/^.*:/, '') : '');
+
+            // 判斷整段
+            let pParent = pNode.parentNode;
+            let blockIns = false, blockDel = false, blockAuthor = t('authorUnknown');
+            while (pParent && pParent.nodeType === 1 && getLocal(pParent) !== "body") {
+                const pTag = getLocal(pParent);
+                if (pTag === "ins" || pTag === "moveto") {
+                    blockIns = true;
+                    blockAuthor = pParent.getAttribute("w:author") || pParent.getAttribute("author") || t('authorUnknown');
+                }
+                if (pTag === "del" || pTag === "movefrom") {
+                    blockDel = true;
+                    blockAuthor = pParent.getAttribute("w:author") || pParent.getAttribute("author") || t('authorUnknown');
+                }
+                pParent = pParent.parentNode;
+            }
+
+            if (blockIns || blockDel) {
+                hasRev = true;
+                types.add("rev");
+                authors.add(blockAuthor);
+                notesData.push({ type: 'block', badgeClass: blockIns ? 'ins-badge' : 'del-badge', key: blockIns ? 'badgeInsBlock' : 'badgeDelBlock' });
+            }
+
+            function extractNodeText(node) {
+                let txt = "";
+                const textNodes = node.getElementsByTagName("*");
+                for(let i=0; i<textNodes.length; i++) {
+                    const tg = getLocal(textNodes[i]);
+                    if(tg === "t" || tg === "deltext") txt += textNodes[i].textContent;
+                }
+                return txt;
             }
 
             function walk(node, inIns, inDel) {
                 if (node.nodeType !== 1) return;
-                const tag = node.tagName;
+                const tag = getLocal(node);
 
-                if (tag === "w:ins" || tag === "w:moveTo") {
+                if (tag === "ins" || tag === "moveto") {
                     hasRev = true;
-                    authors.add(authorOf(node));
-                    const txt = Array.from(node.getElementsByTagName("w:t")).map(n => n.textContent).join("");
-                    if (txt) notes.push({ type: tag === "w:moveTo" ? 'moveIn' : 'ins', text: txt });
+                    types.add("rev");
+                    authors.add(node.getAttribute("w:author") || node.getAttribute("author") || t('authorUnknown'));
+                    const txt = extractNodeText(node);
+                    if (txt) {
+                        notesData.push({ type: 'inline', badgeClass: tag === "moveto" ? 'move-badge' : 'ins-badge', key: tag === "moveto" ? 'badgeMoveIn' : 'badgeIns', text: txt });
+                    }
                     Array.from(node.childNodes).forEach(c => walk(c, true, false));
-                } else if (tag === "w:del" || tag === "w:moveFrom") {
+                } else if (tag === "del" || tag === "movefrom") {
                     hasRev = true;
-                    authors.add(authorOf(node));
-                    const txt = Array.from(node.getElementsByTagName("w:delText")).map(n => n.textContent).join("")
-                             || Array.from(node.getElementsByTagName("w:t")).map(n => n.textContent).join("");
-                    if (txt) notes.push({ type: tag === "w:moveFrom" ? 'moveOut' : 'del', text: txt });
+                    types.add("rev");
+                    authors.add(node.getAttribute("w:author") || node.getAttribute("author") || t('authorUnknown'));
+                    const txt = extractNodeText(node);
+                    if (txt) {
+                        notesData.push({ type: 'inline', badgeClass: tag === "movefrom" ? 'move-badge' : 'del-badge', key: tag === "movefrom" ? 'badgeMoveOut' : 'badgeDel', text: txt });
+                    }
                     Array.from(node.childNodes).forEach(c => walk(c, false, true));
-                } else if (tag === "w:rPrChange" || tag === "w:pPrChange") {
+                } else if (tag === "rprchange" || tag === "pprchange") {
                     hasRev = true;
-                    authors.add(authorOf(node));
-                    notes.push({ type: 'fmt' });
-                // ==========================================
-                // 偵測段落中是否有掛載「註解」的 ID
-                // ==========================================
-                } else if (tag === "w:commentRangeStart" || tag === "w:commentReference") {
+                    types.add("rev");
+                    authors.add(node.getAttribute("w:author") || node.getAttribute("author") || t('authorUnknown'));
+                    notesData.push({ type: 'fmt', badgeClass: 'fmt-badge', key: 'badgeFmt' });
+                    Array.from(node.childNodes).forEach(c => walk(c, inIns, inDel)); 
+                } else if (tag === "commentreference") {
                     const cId = node.getAttribute("w:id");
-                    if (cId && !seenCommentIds.has(cId) && commentsMap.has(cId)) {
-                        seenCommentIds.add(cId);
+                    if (commentsMap && commentsMap[cId]) {
                         hasRev = true;
-                        const cData = commentsMap.get(cId);
-                        authors.add(cData.author);
-                        commentsList.push(cData);
+                        types.add("comment");
+                        const c = commentsMap[cId];
+                        authors.add(c.author);
+                        notesData.push({ type: 'comment', badgeClass: 'comment-badge', key: 'typeComment', author: c.author, text: c.text });
+                        visualAfter += `<span class="comment-mark" title="__COMMENT_TITLE__">💬</span>`;
                     }
-                } else if (tag === "w:t") {
-                    const txt = node.textContent;
+                    Array.from(node.childNodes).forEach(c => walk(c, inIns, inDel));
+                } else if (tag === "t" || tag === "deltext") {
+                    const tContent = node.textContent;
                     if (inIns) {
-                        after += txt;
-                        visualAfter += `<span class="ins-text">${escapeHTML(txt)}</span>`;
-                        segments.push({ type: 'ins', text: txt });
-                    } else if (!inDel) {
-                        before += txt;
-                        after += txt;
-                        visualAfter += escapeHTML(txt);
-                        segments.push({ type: 'normal', text: txt });
-                    }
-                } else if (tag === "w:delText") {
-                    if (inDel) {
-                        const txt = node.textContent;
-                        before += txt;
-                        visualAfter += `<del>${escapeHTML(txt)}</del>`;
-                        segments.push({ type: 'del', text: txt });
+                        after += tContent;
+                        visualAfter += `<span class="ins-text">${escapeHTML(tContent)}</span>`;
+                    } else if (inDel) {
+                        before += tContent;
+                        visualAfter += `<del>${escapeHTML(tContent)}</del>`;
+                    } else {
+                        before += tContent;
+                        after += tContent;
+                        visualAfter += escapeHTML(tContent);
                     }
                 } else {
                     Array.from(node.childNodes).forEach(c => walk(c, inIns, inDel));
                 }
             }
-            walk(pNode, false, false);
+            
+            walk(pNode, blockIns, blockDel);
 
             return hasRev
-                ? { authorList: [...authors], before, after, visualAfter, segments, notes, commentsList }
+                ? { types: [...types], authors: [...authors].join(", "), authorList: [...authors], before, after, visualAfter, notes: notesData }
                 : null;
-        }
-
-        function noteToHTML(notes) {
-            const cls = { ins: 'ins-badge', del: 'del-badge', fmt: 'fmt-badge', moveIn: 'move-badge', moveOut: 'move-badge' };
-            const labelKey = { ins: 'badgeIns', del: 'badgeDel', fmt: 'badgeFmt', moveIn: 'badgeMoveIn', moveOut: 'badgeMoveOut' };
-            return notes.map(n => {
-                const badge = `<span class="badge ${cls[n.type]}">${escapeHTML(t(labelKey[n.type]))}</span>`;
-                return n.text ? `${badge} ${escapeHTML(n.text)}` : badge;
-            }).join('<br>');
-        }
-
-        function noteToPlain(notes) {
-            const labelKey = { ins: 'badgeIns', del: 'badgeDel', fmt: 'badgeFmt', moveIn: 'badgeMoveIn', moveOut: 'badgeMoveOut' };
-            return notes.map(n => {
-                const label = t(labelKey[n.type]);
-                return n.text ? `${label} ${n.text}` : label;
-            }).join(' | ');
         }
 
         // ==========================================
@@ -753,21 +657,21 @@
             const sortedAuthors = [...authorCount.entries()].sort((a, b) => b[1] - a[1]);
 
             const chipsHTML = sortedAuthors.length === 0
-                ? `<span style="color:var(--c-muted)">${escapeHTML(t('noRevisions'))}</span>`
+                ? `<span style="color:var(--c-muted)">${t('statNoRev')}</span>`
                 : sortedAuthors.map(([name, count]) => {
                     const c = colorForAuthor(name);
-                    return `<span class="author-chip" role="button" tabindex="0" data-author="${escapeHTML(name)}"
+                    return `<span class="author-chip" data-author="${escapeHTML(name)}"
                               style="background:${c.bg};color:${c.fg};border-color:${c.border};">
-                              ${escapeHTML(displayAuthor(name))}<span class="count">${count}</span>
+                              ${escapeHTML(name)}<span class="count">${count}</span>
                             </span>`;
                   }).join("");
 
             document.getElementById('statsBar').innerHTML = `
-                <div class="stat"><span class="stat-num">${processedFileNames.size}</span><span class="stat-label">${escapeHTML(t('statFiles'))}</span></div>
+                <div class="stat"><span class="stat-num">${processedFileNames.size}</span><span class="stat-label">${t('statFiles')}</span></div>
                 <div class="stat-divider"></div>
-                <div class="stat"><span class="stat-num">${modifiedParagraphs}</span><span class="stat-label">${escapeHTML(t('statModified'))}</span></div>
+                <div class="stat"><span class="stat-num">${modifiedParagraphs}</span><span class="stat-label">${t('statParas')}</span></div>
                 <div class="stat-divider"></div>
-                <div class="stat"><span class="stat-num">${totalRevisions}</span><span class="stat-label">${escapeHTML(t('statRevisions'))}</span></div>
+                <div class="stat"><span class="stat-num">${totalRevisions}</span><span class="stat-label">${t('statRevs')}</span></div>
                 <div class="stat-divider"></div>
                 <div class="author-chips" id="authorChips">${chipsHTML}</div>
             `;
@@ -782,53 +686,6 @@
                     applyFilters();
                 });
             });
-        }
-
-        function renderConsistencyWarning() {
-            const banner = document.getElementById('consistencyWarning');
-            const conflicts = [];
-            for (const paraId of orderedParagraphIds) {
-                const entry = combinedRevisionsMap.get(paraId);
-                if (entry.conflicts && entry.conflicts.length > 0) {
-                    conflicts.push({ paraId, entry });
-                }
-            }
-
-            if (conflicts.length === 0) {
-                banner.classList.add('hidden');
-                banner.innerHTML = '';
-                return;
-            }
-
-            const previewLen = 40;
-            const preview = s => {
-                const trimmed = (s || '').trim();
-                if (trimmed.length <= previewLen) return trimmed || '(空)';
-                return trimmed.slice(0, previewLen) + '…';
-            };
-
-            const items = conflicts.slice(0, 8).map(({ entry }) => {
-                const allFiles = [entry.baseFile, ...entry.conflicts.map(c => c.file)];
-                return `<li>${escapeHTML(t('consistencyConflictLine', {
-                    preview: preview(entry.baseBefore),
-                    otherPreview: preview(entry.conflicts[0].text),
-                    files: allFiles.join(' / ')
-                }))}</li>`;
-            }).join('');
-
-            const more = conflicts.length > 8
-                ? `<li>${escapeHTML(t('consistencyMore', { n: conflicts.length - 8 }))}</li>`
-                : '';
-
-            banner.innerHTML = `
-                <div class="warn-title">⚠️ ${escapeHTML(t('consistencyWarning', { n: conflicts.length }))}</div>
-                <div class="warn-hint">${escapeHTML(t('consistencyHint'))}</div>
-                <details>
-                    <summary>${escapeHTML(t('consistencyShowDetails'))}</summary>
-                    <ul class="warn-list">${items}${more}</ul>
-                </details>
-            `;
-            banner.classList.remove('hidden');
         }
 
         function renderTable() {
@@ -849,36 +706,45 @@
                         if (index === 0 && groupIndex > 1) tr.classList.add('row-group-start');
                         if (index > 0) tr.classList.add('repeated-para-row');
                         
-                        const commentTextForSearch = rev.data.commentsList.map(c => c.text).join(" ");
-                        tr.dataset.authors = rev.data.authorList.join("|");
-                        tr.dataset.searchText = (rev.data.after + " " + paragraphData.baseBefore + " " + commentTextForSearch).toLowerCase();
-
                         const tags = rev.data.authorList.map(a => {
                             const c = colorForAuthor(a);
-                            return `<span class="author-tag" style="background:${c.bg};color:${c.fg};">${escapeHTML(displayAuthor(a))}</span>`;
+                            return `<span class="author-tag" style="background:${c.bg};color:${c.fg};">${escapeHTML(a)}</span>`;
                         }).join(" ");
 
-                        const noteHTML = noteToHTML(rev.data.notes);
-                        const notePlain = noteToPlain(rev.data.notes);
+                        // Types logic based on structured data
+                        let typeHtml = "";
+                        let typeLabels = rev.data.types.map(ty => t(ty === 'rev' ? 'typeRev' : 'typeComment'));
+                        let typeStr = typeLabels.join("+");
 
-                        // 渲染註解區塊
-                        const commentHTML = rev.data.commentsList.map(c => {
-                            const cColor = colorForAuthor(c.author);
-                            return `<div class="comment-box" style="border-left-color: ${cColor.border};">
-                                        <div class="comment-author" style="color: ${cColor.fg};">💬 ${escapeHTML(displayAuthor(c.author))}</div>
-                                        <div>${escapeHTML(c.text)}</div>
-                                    </div>`;
-                        }).join("");
-                        
-                        const commentPlain = rev.data.commentsList.map(c => `[${displayAuthor(c.author)}] ${c.text}`).join(" | ");
+                        if(rev.data.types.includes("rev") && rev.data.types.includes("comment")) {
+                            typeHtml = `<span class="type-tag type-both">${t('typeBoth')}</span>`;
+                        } else if(rev.data.types.includes("rev")) {
+                            typeHtml = `<span class="type-tag type-rev">${t('typeRev')}</span>`;
+                        } else if(rev.data.types.includes("comment")) {
+                            typeHtml = `<span class="type-tag type-comment">${t('typeComment')}</span>`;
+                        }
 
-                        // 更新為 5 欄顯示
+                        // Parse notes dynamically
+                        const renderedNotes = rev.data.notes.map(n => {
+                            if (n.type === 'comment') {
+                                return `<span class="badge ${n.badgeClass}">${t(n.key)}</span> <b>${escapeHTML(n.author)}:</b> ${escapeHTML(n.text)}`;
+                            }
+                            return `<span class="badge ${n.badgeClass}">${t(n.key)}</span> ${n.text ? escapeHTML(n.text) : ''}`;
+                        });
+                        const noteHtml = renderedNotes.join("<br><br>");
+                        const rawNoteText = rev.data.notes.map(n => n.text || '').join(" ");
+
+                        // Replace generic placeholder with localized tooltip
+                        const localVisualAfter = rev.data.visualAfter.replace(/__COMMENT_TITLE__/g, t('typeComment'));
+
+                        tr.dataset.authors = rev.data.authorList.join("|");
+                        tr.dataset.searchText = (rev.data.after + " " + paragraphData.baseBefore + " " + rawNoteText).toLowerCase();
                         tr.innerHTML = `
                             <td><div class="author-cell">${tags}<span class="row-num">#${globalCount}</span></div></td>
-                            <td data-csv-value="${escapeHTML(rev.data.after)}">${rev.data.visualAfter}</td>
+                            <td data-csv-value="${escapeHTML(typeStr)}" style="text-align:center; vertical-align:middle;">${typeHtml}</td>
+                            <td data-csv-value="${escapeHTML(rev.data.after)}">${localVisualAfter}</td>
                             <td data-csv-value="${escapeHTML(paragraphData.baseBefore)}">${escapeHTML(paragraphData.baseBefore)}</td>
-                            <td data-csv-value="${escapeHTML(notePlain)}">${noteHTML}</td>
-                            <td data-csv-value="${escapeHTML(commentPlain)}">${commentHTML}</td>
+                            <td data-csv-value="${escapeHTML(rawNoteText)}">${noteHtml}</td>
                         `;
                         tbody.appendChild(tr);
                     });
@@ -886,7 +752,7 @@
             }
 
             if (globalCount === 0) {
-                tbody.innerHTML = `<tr class="empty-row"><td colspan="5">${escapeHTML(t('emptyState'))}</td></tr>`;
+                tbody.innerHTML = `<tr class="empty-row"><td colspan="5">${t('emptyRow')}</td></tr>`;
             }
         }
 
@@ -902,272 +768,87 @@
         }
 
         // ==========================================
-        // Reconstructed visual doc (O1-O7 optimizations)
+        // Exports
         // ==========================================
-        function buildVisualDocHTML() {
-            const parts = [];
-            parts.push(`<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-            <head><meta charset='utf-8'><title>${escapeHTML(t('docTitle', { name: baseFileName }))}</title>
+        function getRenderedNotesAsText(notesData) {
+            return notesData.map(n => {
+                if (n.type === 'comment') return `[${t(n.key)}] ${n.author}: ${n.text}`;
+                return `[${t(n.key)}] ${n.text ? n.text : ''}`;
+            }).join("\n");
+        }
+
+        function exportToVisualDoc() {
+            let htmlContent = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+            <head><meta charset='utf-8'><title>Reconstructed Document</title>
             <style>
                 body { font-family: 'Microsoft JhengHei', 'Segoe UI', Arial, sans-serif; font-size: 11pt; line-height: 1.5; }
-                .author-label { font-weight: bold; color: #fff; padding: 2px 8px; font-size: 10pt; margin-right: 8px; }
+                .author-label { font-weight: bold; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 10pt; margin-right: 8px; }
                 p { margin-bottom: 12px; text-align: justify; }
                 .rev-block { border-left: 3px solid #8e44ad; background-color: #f8f9fa; padding: 8px 10px; margin-bottom: 8px; }
-                .rev-original { color: #999; font-size: 9pt; margin-bottom: 4px; border-bottom: 1px dotted #ddd; padding-bottom: 3px; }
-                .rev-group-header { font-size: 9pt; color: #8e44ad; margin: 12px 0 4px; font-weight: 600; }
                 .doc-title { text-align: center; color: #2c3e50; font-size: 16pt; font-weight: bold; margin-bottom: 6px; }
                 .doc-meta { text-align: center; color: #7f8c8d; font-size: 9pt; margin-bottom: 18px; }
                 ins, .ins-text { color: #27ae60; text-decoration: underline; font-weight: bold; }
                 del { color: #e74c3c; text-decoration: line-through; }
-                .inline-comment { font-size: 10pt; color: #e67e22; border: 1px dashed #e67e22; padding: 2px 4px; margin-left: 6px; background: #fffdf5; }
+                .comment-mark { background-color: #fff3cd; color:#333; font-weight:bold; }
             </style></head><body>
-            <div class="doc-title">${escapeHTML(t('docTitle', { name: baseFileName }))}</div>
-            <div class="doc-meta">${escapeHTML(t('docMeta', { files: [...processedFileNames].join(' / ') }))}</div>
-            <hr>`);
+            <div class="doc-title">${t('exportDocTitle')}${escapeHTML(baseFileName)}</div>
+            <div class="doc-meta">${t('exportDocSrc')}${[...processedFileNames].map(escapeHTML).join(" / ")}</div>
+            <hr>`;
 
-            let consecutiveEmpty = 0;
             for (let paraId of orderedParagraphIds) {
                 const paraData = combinedRevisionsMap.get(paraId);
                 const modifiedRevs = paraData.revisions.filter(r => r.hasRev);
 
                 if (modifiedRevs.length > 0) {
-                    consecutiveEmpty = 0;
-                    // O2: Multi-author header
-                    if (modifiedRevs.length > 1) {
-                        const uniqueFiles = new Set(modifiedRevs.map(r => r.docName)).size;
-                        parts.push(`<div class="rev-group-header">▸ ${escapeHTML(t('multiAuthorHeader', { count: modifiedRevs.length, files: uniqueFiles }))}</div>`);
-                    }
                     modifiedRevs.forEach(rev => {
-                        const firstAuthor = rev.data.authorList[0] || "__unknown__";
+                        const firstAuthor = rev.data.authorList[0] || t('authorUnknown');
                         const c = colorForAuthor(firstAuthor);
-                        const authorLabel = rev.data.authorList.map(displayAuthor).join(", ");
-
-                        // O3: i18n comment label
-                        let commentText = '';
-                        if (rev.data.commentsList && rev.data.commentsList.length > 0) {
-                             commentText = rev.data.commentsList.map(cmt => `<span class="inline-comment">[${escapeHTML(t('commentLabel'))}: ${escapeHTML(cmt.text)}]</span>`).join(" ");
-                        }
-
-                        // O1: Add original text context
-                        parts.push(`<div class="rev-block" style="border-left-color:${c.border};">
-                            <span class="author-label" style="background-color:${c.border};">[${escapeHTML(authorLabel)}]</span>
-                            <div class="rev-original">${escapeHTML(t('originalText'))}: ${escapeHTML(paraData.baseBefore)}</div>
-                            ${rev.data.visualAfter} ${commentText}
-                        </div>`);
+                        const localVisualAfter = rev.data.visualAfter.replace(/__COMMENT_TITLE__/g, t('typeComment'));
+                        const textNote = escapeHTML(getRenderedNotesAsText(rev.data.notes)).replace(/\n/g, '<br>');
+                        
+                        htmlContent += `<div class="rev-block" style="border-left-color:${c.border};">
+                            <span class="author-label" style="background-color:${c.border};">[${escapeHTML(rev.data.authors)}]</span>
+                            ${localVisualAfter}
+                            <div style="font-size:9pt; color:#666; margin-top:8px;">${textNote}</div>
+                        </div>`;
                     });
                 } else {
-                    // O6: Merge consecutive empty paragraphs
                     let text = escapeHTML(paraData.baseBefore);
-                    if (!text.trim()) {
-                        consecutiveEmpty++;
-                        if (consecutiveEmpty <= 1) {
-                            parts.push(`<p style="margin:0;line-height:0.8;">&nbsp;</p>`);
-                        }
-                    } else {
-                        consecutiveEmpty = 0;
-                        parts.push(`<p>${text}</p>`);
-                    }
+                    if (!text.trim()) text = "&nbsp;";
+                    htmlContent += `<p>${text}</p>`;
                 }
             }
 
-            parts.push("</body></html>");
-            return '\uFEFF' + parts.join('');
-        }
+            htmlContent += "</body></html>";
 
-        // ==========================================
-        // OOXML helpers for .docx generation
-        // ==========================================
-        function escapeXml(str) {
-            return String(str).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
-        }
-
-        function hslToHex(hslStr) {
-            const m = String(hslStr).match(/hsl\(([\d.]+)[\s,]+([\d.]+)%[\s,]+([\d.]+)%\)/);
-            if (!m) return '8E44AD';
-            let h = parseFloat(m[1]) / 360, s = parseFloat(m[2]) / 100, l = parseFloat(m[3]) / 100;
-            const hue2rgb = (p, q, t) => { if (t < 0) t += 1; if (t > 1) t -= 1; if (t < 1/6) return p + (q - p) * 6 * t; if (t < 1/2) return q; if (t < 2/3) return p + (q - p) * (2/3 - t) * 6; return p; };
-            const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
-            const r = Math.round(hue2rgb(p, q, h + 1/3) * 255), g = Math.round(hue2rgb(p, q, h) * 255), b = Math.round(hue2rgb(p, q, h - 1/3) * 255);
-            return ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
-        }
-
-        function buildDocxBlob() {
-            const zip = new PizZip();
-
-            zip.file('[Content_Types].xml',
-                '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-                '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
-                '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
-                '<Default Extension="xml" ContentType="application/xml"/>' +
-                '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' +
-                '</Types>');
-
-            zip.file('_rels/.rels',
-                '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-                '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
-                '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>' +
-                '</Relationships>');
-
-            zip.file('word/_rels/document.xml.rels',
-                '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-                '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>');
-
-            // Build document body
-            const bp = []; // body parts
-
-            // Title
-            bp.push('<w:p><w:pPr><w:jc w:val="center"/></w:pPr>' +
-                '<w:r><w:rPr><w:b/><w:sz w:val="32"/><w:szCs w:val="32"/><w:color w:val="2C3E50"/></w:rPr>' +
-                '<w:t>' + escapeXml(t('docTitle', { name: baseFileName })) + '</w:t></w:r></w:p>');
-
-            // Meta
-            bp.push('<w:p><w:pPr><w:jc w:val="center"/></w:pPr>' +
-                '<w:r><w:rPr><w:sz w:val="18"/><w:szCs w:val="18"/><w:color w:val="7F8C8D"/></w:rPr>' +
-                '<w:t>' + escapeXml(t('docMeta', { files: [...processedFileNames].join(' / ') })) + '</w:t></w:r></w:p>');
-
-            // HR
-            bp.push('<w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="4" w:space="1" w:color="auto"/></w:pBdr></w:pPr></w:p>');
-
-            let consecutiveEmpty = 0;
-            for (const paraId of orderedParagraphIds) {
-                const paraData = combinedRevisionsMap.get(paraId);
-                const modifiedRevs = paraData.revisions.filter(r => r.hasRev);
-
-                if (modifiedRevs.length > 0) {
-                    consecutiveEmpty = 0;
-                    if (modifiedRevs.length > 1) {
-                        const uf = new Set(modifiedRevs.map(r => r.docName)).size;
-                        bp.push('<w:p><w:r><w:rPr><w:sz w:val="18"/><w:szCs w:val="18"/><w:color w:val="8E44AD"/><w:b/></w:rPr>' +
-                            '<w:t>\u25b8 ' + escapeXml(t('multiAuthorHeader', { count: modifiedRevs.length, files: uf })) + '</w:t></w:r></w:p>');
-                    }
-                    modifiedRevs.forEach(rev => {
-                        const fa = rev.data.authorList[0] || '__unknown__';
-                        const c = colorForAuthor(fa);
-                        const bHex = hslToHex(c.border);
-                        const al = rev.data.authorList.map(displayAuthor).join(', ');
-
-                        // Author label + original text paragraph
-                        bp.push('<w:p>' +
-                            '<w:pPr><w:pBdr><w:left w:val="single" w:sz="12" w:space="4" w:color="' + bHex + '"/></w:pBdr>' +
-                            '<w:shd w:val="clear" w:color="auto" w:fill="F8F9FA"/></w:pPr>' +
-                            '<w:r><w:rPr><w:b/><w:color w:val="FFFFFF"/><w:shd w:val="clear" w:color="auto" w:fill="' + bHex + '"/></w:rPr>' +
-                            '<w:t xml:space="preserve">[' + escapeXml(al) + '] </w:t></w:r>' +
-                            '<w:r><w:rPr><w:sz w:val="18"/><w:szCs w:val="18"/><w:color w:val="999999"/></w:rPr>' +
-                            '<w:t xml:space="preserve">' + escapeXml(t('originalText')) + ': ' + escapeXml(paraData.baseBefore) + '</w:t></w:r>' +
-                            '</w:p>');
-
-                        // Revision content paragraph with segments
-                        let segRuns = '';
-                        if (rev.data.segments && rev.data.segments.length > 0) {
-                            rev.data.segments.forEach(seg => {
-                                if (seg.type === 'ins') {
-                                    segRuns += '<w:r><w:rPr><w:b/><w:u w:val="single"/><w:color w:val="27AE60"/></w:rPr>' +
-                                        '<w:t xml:space="preserve">' + escapeXml(seg.text) + '</w:t></w:r>';
-                                } else if (seg.type === 'del') {
-                                    segRuns += '<w:r><w:rPr><w:strike/><w:color w:val="E74C3C"/></w:rPr>' +
-                                        '<w:t xml:space="preserve">' + escapeXml(seg.text) + '</w:t></w:r>';
-                                } else {
-                                    segRuns += '<w:r><w:t xml:space="preserve">' + escapeXml(seg.text) + '</w:t></w:r>';
-                                }
-                            });
-                        } else {
-                            segRuns = '<w:r><w:t xml:space="preserve">' + escapeXml(rev.data.after) + '</w:t></w:r>';
-                        }
-
-                        // Comments
-                        let cmtRuns = '';
-                        if (rev.data.commentsList && rev.data.commentsList.length > 0) {
-                            rev.data.commentsList.forEach(cmt => {
-                                cmtRuns += '<w:r><w:rPr><w:color w:val="E67E22"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr>' +
-                                    '<w:t xml:space="preserve"> [' + escapeXml(t('commentLabel')) + ': ' + escapeXml(cmt.text) + ']</w:t></w:r>';
-                            });
-                        }
-
-                        bp.push('<w:p>' +
-                            '<w:pPr><w:pBdr><w:left w:val="single" w:sz="12" w:space="4" w:color="' + bHex + '"/></w:pBdr>' +
-                            '<w:shd w:val="clear" w:color="auto" w:fill="F8F9FA"/></w:pPr>' +
-                            segRuns + cmtRuns + '</w:p>');
-                    });
-                } else {
-                    const text = paraData.baseBefore;
-                    if (!text.trim()) {
-                        consecutiveEmpty++;
-                        if (consecutiveEmpty <= 1) bp.push('<w:p></w:p>');
-                    } else {
-                        consecutiveEmpty = 0;
-                        bp.push('<w:p><w:r><w:t xml:space="preserve">' + escapeXml(text) + '</w:t></w:r></w:p>');
-                    }
-                }
-            }
-
-            const docXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-                '<w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" ' +
-                'xmlns:mo="http://schemas.microsoft.com/office/mac/office/2008/main" ' +
-                'xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" ' +
-                'xmlns:mv="urn:schemas-microsoft-com:mac:vml" ' +
-                'xmlns:o="urn:schemas-microsoft-com:office:office" ' +
-                'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ' +
-                'xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" ' +
-                'xmlns:v="urn:schemas-microsoft-com:vml" ' +
-                'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" ' +
-                'xmlns:w10="urn:schemas-microsoft-com:office:word" ' +
-                'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" ' +
-                'xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml">' +
-                '<w:body>' + bp.join('') +
-                '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr>' +
-                '</w:body></w:document>';
-
-            zip.file('word/document.xml', docXml);
-
-            return zip.generate({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-        }
-
-        function exportToVisualDoc() {
-            const blob = buildDocxBlob();
+            const blob = new Blob(['\uFEFF', htmlContent], { type: 'application/msword' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = `${baseFileName}${t('suffixReconstructed')}.docx`;
+            link.download = `${baseFileName}_Reconstructed.doc`;
             link.click();
-            setTimeout(() => URL.revokeObjectURL(link.href), 1000);
         }
 
-        // O4: Preview before download
-        function previewVisualDoc() {
-            const htmlContent = buildVisualDocHTML();
-            const blob = new Blob([htmlContent], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
-            window.open(url, '_blank');
-            setTimeout(() => URL.revokeObjectURL(url), 5000);
-        }
-
-        // ==========================================
-        // Table exports
-        // ==========================================
         function exportToWordTable() {
             const preHtml = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-            <head><meta charset='utf-8'><title>${escapeHTML(t('wordTableHeading', { name: baseFileName }))}</title>
-            <style> table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid black; padding: 8px; text-align: left; vertical-align: top; } th { background-color: #D3D3D3; } ins, .ins-text { color: #27ae60; text-decoration: underline; font-weight: bold; } del { color: #e74c3c; text-decoration: line-through; } .badge { color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.78em; margin-right: 4px; } .ins-badge { background-color: #27ae60; } .del-badge { background-color: #e74c3c; } .fmt-badge { background-color: #f39c12; } .move-badge { background-color: #1abc9c; } .comment-box { margin-bottom: 6px; border-left: 2px solid #888; padding-left: 6px; font-size: 0.9em; } .comment-author { font-weight: bold; font-size: 0.9em; }</style></head><body>
-            <h2 style="text-align:center;">${escapeHTML(t('wordTableHeading', { name: baseFileName }))}</h2>`;
+            <head><meta charset='utf-8'><title>Revision Table</title>
+            <style> table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid black; padding: 8px; text-align: left; vertical-align: top; white-space: pre-wrap; } th { background-color: #D3D3D3; } ins, .ins-text { color: #27ae60; text-decoration: underline; font-weight: bold; } del { color: #e74c3c; text-decoration: line-through; } .badge { color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.78em; margin-right: 4px; } .ins-badge { background-color: #27ae60; } .del-badge { background-color: #e74c3c; } .fmt-badge { background-color: #f39c12; } .move-badge { background-color: #1abc9c; } .comment-badge { background-color: #3498db; } .type-tag { padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 0.85em; } .type-rev { background-color: #ffebee; color: #c62828; } .type-comment { background-color: #e3f2fd; color: #1565c0; } .type-both { background-color: #f3e5f5; color: #6a1b9a; } </style></head><body>
+            <h2 style="text-align:center;">${t('exportTableTitle')}${escapeHTML(baseFileName)}</h2>`;
             const html = preHtml + document.getElementById('revisionTable').outerHTML + "</body></html>";
-            const blob = new Blob(['\uFEFF', html], { type: 'application/msword' });
             const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `${baseFileName}${t('suffixTable')}.doc`;
+            link.href = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(html);
+            link.download = `${baseFileName}_Table.doc`;
             link.click();
-            setTimeout(() => URL.revokeObjectURL(link.href), 1000);
         }
 
         function exportToHTML() {
             const tableHTML = document.getElementById('revisionTable').outerHTML;
-            const style = document.getElementById('appStyle').innerHTML;
-            const heading = t('wordTableHeading', { name: baseFileName });
-            const fullHTML = `<!DOCTYPE html><html lang="${currentLang === 'zh' ? 'zh-Hant' : 'en'}"><head><meta charset="UTF-8"><title>${escapeHTML(heading)}</title><style>${style}</style></head>
-                              <body><div class="container"><h2>${escapeHTML(heading)}</h2><div class="table-wrap">${tableHTML}</div></div></body></html>`;
+            const style = document.querySelector('style').innerHTML;
+            const fullHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escapeHTML(baseFileName)} - Table</title><style>${style}</style></head>
+                              <body><div class="container"><h2>${t('exportTableTitle')}${escapeHTML(baseFileName)}</h2><div class="table-wrap">${tableHTML}</div></div></body></html>`;
             const link = document.createElement("a");
             link.href = URL.createObjectURL(new Blob([fullHTML], { type: 'text/html' }));
-            link.download = `${baseFileName}${t('suffixTable')}.html`;
+            link.download = `${baseFileName}_Table.html`;
             link.click();
-            setTimeout(() => URL.revokeObjectURL(link.href), 1000);
         }
 
         function exportToCSV() {
@@ -1183,240 +864,17 @@
             });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-            link.download = `${baseFileName}${t('suffixTable')}.csv`;
+            link.download = `${baseFileName}_Table.csv`;
             link.click();
-            setTimeout(() => URL.revokeObjectURL(link.href), 1000);
         }
 
         function resetUI() {
-            if (processedFileNames.size > 0 && !confirm(t('confirmReset'))) return;
-            // Programmatic reset instead of location.reload()
-            combinedRevisionsMap.clear();
-            orderedParagraphIds = [];
-            processedFileNames.clear();
-            authorColors.clear();
-            activeAuthorFilter = null;
-            lastStatus = null;
-            document.getElementById('resultSection').style.display = 'none';
-            document.getElementById('resultBody').innerHTML = '';
-            document.getElementById('statsBar').innerHTML = '';
-            document.getElementById('consistencyWarning').classList.add('hidden');
-            document.getElementById('consistencyWarning').innerHTML = '';
-            document.getElementById('fileList').innerHTML = '';
-            document.getElementById('status').innerHTML = '';
-            document.getElementById('searchBox').value = '';
-            document.getElementById('uploadSection').classList.remove('hidden');
-            document.getElementById('fileDropZone').classList.remove('compact');
-            document.getElementById('demoButtons').classList.remove('hidden');
-            document.getElementById('backToUploadBtn').classList.add('hidden');
-            fileInput.value = '';
-            // Reset tab to first
-            const firstTab = document.querySelector('.tab-btn[data-tab="tab-table"]');
-            if (firstTab) switchTab('tab-table', firstTab);
+            if (processedFileNames.size > 0 && !confirm(t('confirmClear'))) return;
+            location.reload();
         }
-
-        // ==========================================
-        // Demo Data Loader
-        // ==========================================
-        function loadDemoData(demoLang) {
-            // 清除現有狀態
-            combinedRevisionsMap.clear();
-            orderedParagraphIds = [];
-            processedFileNames.clear();
-
-            // 隱藏上傳區，顯示載入狀態
-            document.getElementById('uploadSection').classList.add('hidden');
-            setStatus('statusAnalyzing', 'orange', true, { n: 1 });
-
-            // 隱藏 Demo 按鈕，顯示回上一頁按鈕
-            document.getElementById('demoButtons').classList.add('hidden');
-            document.getElementById('backToUploadBtn').classList.remove('hidden');
-
-            setTimeout(() => {
-                if (demoLang === 'en') {
-                    // English Demo Data
-                    processedFileNames.add("2024_Marketing_Plan_RevA.docx");
-                    baseFileName = "2024_Marketing_Plan_RevA";
-                    orderedParagraphIds = ["para_1", "para_2", "para_3"];
-
-                    combinedRevisionsMap.set("para_1", {
-                        baseBefore: "This report is scheduled to be submitted to the General Manager tomorrow afternoon.",
-                        revisions: [{
-                            docName: "2024_Marketing_Plan_RevA.docx",
-                            hasRev: true,
-                            data: {
-                                authorList: ["Wang Ming", "Lin Dawei"],
-                                before: "This report is scheduled to be submitted to the General Manager tomorrow afternoon.",
-                                after: "This key report is scheduled to be submitted to the General Manager next Monday morning.",
-                                visualAfter: "This <span class='ins-text'>key</span> report is scheduled to be submitted to the General Manager <del>tomorrow afternoon</del><span class='ins-text'>next Monday morning</span>.",
-                                notes: [
-                                    { type: "ins", text: "key" },
-                                    { type: "del", text: "tomorrow afternoon" },
-                                    { type: "ins", text: "next Monday morning" }
-                                ],
-                                segments: [
-                                    { type: 'normal', text: 'This ' },
-                                    { type: 'ins', text: 'key' },
-                                    { type: 'normal', text: ' report is scheduled to be submitted to the General Manager ' },
-                                    { type: 'del', text: 'tomorrow afternoon' },
-                                    { type: 'ins', text: 'next Monday morning' },
-                                    { type: 'normal', text: '.' }
-                                ],
-                                commentsList: [
-                                    { author: "Lin Dawei", text: "The boss said the meeting time is postponed, so I changed the date first. Please confirm this final version." }
-                                ]
-                            }
-                        }]
-                    });
-
-                    combinedRevisionsMap.set("para_2", {
-                        baseBefore: "The subsequent progress will be tracked by each department manager.",
-                        revisions: [{ docName: "2024_Marketing_Plan_RevA.docx", hasRev: false, data: null }]
-                    });
-
-                    combinedRevisionsMap.set("para_3", {
-                        baseBefore: "For the budget, we will apply for an additional $50,000 in funding.",
-                        revisions: [{
-                            docName: "2024_Marketing_Plan_RevA.docx",
-                            hasRev: true,
-                            data: {
-                                authorList: ["Chen A-Mei", "Wang Ming"],
-                                before: "For the budget, we will apply for an additional $50,000 in funding.",
-                                after: "For the budget, we will apply for an additional $100,000 in project funding.",
-                                visualAfter: "For the budget, we will apply for an additional <del>$50,000</del><span class='ins-text'>$100,000</span> in <span class='ins-text'>project</span> funding.",
-                                notes: [
-                                    { type: "del", text: "$50,000" },
-                                    { type: "ins", text: "$100,000 in project" },
-                                    { type: "fmt" }
-                                ],
-                                segments: [
-                                    { type: 'normal', text: 'For the budget, we will apply for an additional ' },
-                                    { type: 'del', text: '$50,000' },
-                                    { type: 'ins', text: '$100,000' },
-                                    { type: 'normal', text: ' in ' },
-                                    { type: 'ins', text: 'project' },
-                                    { type: 'normal', text: ' funding.' }
-                                ],
-                                commentsList: [
-                                    { author: "Chen A-Mei", text: "Finance department reminds us that we must attach a detailed budget breakdown to pass the review!" },
-                                    { author: "Wang Ming", text: "No problem, I've already attached it in the email." }
-                                ]
-                            }
-                        }]
-                    });
-                } else {
-                    // 中文 Demo Data (default)
-                    processedFileNames.add("2024_Marketing_Plan_RevA.docx");
-                    baseFileName = "2024_Marketing_Plan_RevA";
-                    orderedParagraphIds = ["para_1", "para_2", "para_3"];
-
-                    combinedRevisionsMap.set("para_1", {
-                        baseBefore: "這份報告預計在明天下午提交給總經理。",
-                        revisions: [{
-                            docName: "2024_Marketing_Plan_RevA.docx",
-                            hasRev: true,
-                            data: {
-                                authorList: ["王小明", "林大偉"],
-                                before: "這份報告預計在明天下午提交給總經理。",
-                                after: "這份關鍵報告預計在下週一早上提交給總經理。",
-                                visualAfter: "這份<span class='ins-text'>關鍵</span>報告預計在<del>明天下午</del><span class='ins-text'>下週一早上</span>提交給總經理。",
-                                notes: [
-                                    { type: "ins", text: "關鍵" },
-                                    { type: "del", text: "明天下午" },
-                                    { type: "ins", text: "下週一早上" }
-                                ],
-                                segments: [
-                                    { type: 'normal', text: '這份' },
-                                    { type: 'ins', text: '關鍵' },
-                                    { type: 'normal', text: '報告預計在' },
-                                    { type: 'del', text: '明天下午' },
-                                    { type: 'ins', text: '下週一早上' },
-                                    { type: 'normal', text: '提交給總經理。' }
-                                ],
-                                commentsList: [
-                                    { author: "林大偉", text: "老闆說會議時間延後了，所以我先把日期改掉，請確認這份定稿。" }
-                                ]
-                            }
-                        }]
-                    });
-
-                    combinedRevisionsMap.set("para_2", {
-                        baseBefore: "接下來的進度將由各部門主管進行後續追蹤。",
-                        revisions: [{ docName: "2024_Marketing_Plan_RevA.docx", hasRev: false, data: null }]
-                    });
-
-                    combinedRevisionsMap.set("para_3", {
-                        baseBefore: "預算的部份，我們將申請額外五萬元的補助。",
-                        revisions: [{
-                            docName: "2024_Marketing_Plan_RevA.docx",
-                            hasRev: true,
-                            data: {
-                                authorList: ["陳阿美", "王小明"],
-                                before: "預算的部份，我們將申請額外五萬元的補助。",
-                                after: "預算的部份，我們將申請額外十萬元的專案補助。",
-                                visualAfter: "預算的部份，我們將申請額外<del>五萬元</del><span class='ins-text'>十萬元</span>的<span class='ins-text'>專案</span>補助。",
-                                notes: [
-                                    { type: "del", text: "五萬元" },
-                                    { type: "ins", text: "十萬元的專案" },
-                                    { type: "fmt" }
-                                ],
-                                segments: [
-                                    { type: 'normal', text: '預算的部份，我們將申請額外' },
-                                    { type: 'del', text: '五萬元' },
-                                    { type: 'ins', text: '十萬元' },
-                                    { type: 'normal', text: '的' },
-                                    { type: 'ins', text: '專案' },
-                                    { type: 'normal', text: '補助。' }
-                                ],
-                                commentsList: [
-                                    { author: "陳阿美", text: "財務部提醒，記得要附上詳細的預算明細表才能通過審核喔！" },
-                                    { author: "王小明", text: "沒問題，我已經把附件補在信件裡了。" }
-                                ]
-                            }
-                        }]
-                    });
-                }
-
-                // 觸發畫面渲染
-                renderTable();
-                renderStats();
-                renderFileList();
-                renderConsistencyWarning();
-                applyFilters();
-
-                setStatus('statusDone', 'green', false, { n: 1 });
-                document.getElementById('resultSection').style.display = 'block';
-            }, DEMO_DELAY_MS); // Named constant for demo delay
-        }
-
-        function backToUpload() {
-            // 清除 Demo 資料狀態
-            combinedRevisionsMap.clear();
-            orderedParagraphIds = [];
-            processedFileNames.clear();
-            authorColors.clear();
-            activeAuthorFilter = null;
-
-            // 隱藏結果區域
-            document.getElementById('resultSection').style.display = 'none';
-
-            // 顯示 Demo 按鈕，隱藏回上一頁按鈕
-            document.getElementById('demoButtons').classList.remove('hidden');
-            document.getElementById('backToUploadBtn').classList.add('hidden');
-
-            // 清除狀態與檔案列表
-            setStatus('');
-            document.getElementById('fileList').innerHTML = '';
-            document.getElementById('status').innerHTML = '';
-            document.getElementById('statsBar').innerHTML = '';
-
-            // 恢復上傳區域
-            document.getElementById('uploadSection').classList.remove('hidden');
-            document.getElementById('fileDropZone').classList.remove('compact');
-        }
-
-        // Initial language paint
-        applyI18n();
+        
+        // Init logic - explicitly update on first load to make sure everything matches
+        updateLanguageUI = toggleLanguage; // alias
     </script>
 </body>
 </html>
