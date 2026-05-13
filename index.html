@@ -374,7 +374,11 @@
         };
 
         let currentLang = 'zh';
-        function t(key) { return dict[currentLang][key] || key; }
+        function t(key, params = {}) {
+            let s = (dict[currentLang] && dict[currentLang][key]) || key;
+            for (const k in params) s = s.replace(new RegExp(`\\{${k}\\}`, 'g'), params[k]);
+            return s;
+        }
 
         function toggleLanguage() {
             currentLang = currentLang === 'zh' ? 'en' : 'zh';
@@ -420,6 +424,12 @@
 
         document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
             btn.addEventListener('click', () => switchTab(btn.dataset.tab, btn));
+            btn.addEventListener('keydown', e => {
+                const tabs = [...document.querySelectorAll('.tab-btn[data-tab]')];
+                const i = tabs.indexOf(btn);
+                if (e.key === 'ArrowRight') { e.preventDefault(); tabs[(i+1) % tabs.length].focus(); tabs[(i+1) % tabs.length].click(); }
+                if (e.key === 'ArrowLeft')  { e.preventDefault(); tabs[(i-1+tabs.length) % tabs.length].focus(); tabs[(i-1+tabs.length) % tabs.length].click(); }
+            });
         });
 
         document.getElementById('searchBox').addEventListener('input', applyFilters);
@@ -477,6 +487,7 @@
                     let commentsMap = {};
                     if (commentsFile) {
                         const commentsXml = new DOMParser().parseFromString(commentsFile.asText(), "application/xml");
+                        if (commentsXml.getElementsByTagName('parsererror').length) throw new Error(`${file.name}: comments.xml parse error`);
                         for (let cNode of commentsXml.getElementsByTagName('w:comment')) {
                             commentsMap[cNode.getAttribute('w:id')] = {
                                 author: cNode.getAttribute('w:author') || t('authorUnknown'),
@@ -486,6 +497,7 @@
                     }
 
                     const docXml = new DOMParser().parseFromString(docXmlFile.asText(), "application/xml");
+                    if (docXml.getElementsByTagName('parsererror').length) throw new Error(`${file.name}: document.xml parse error`);
                     const paragraphs = docXml.getElementsByTagName('w:p');
 
                     let pIndex = 0;
@@ -704,14 +716,18 @@
             `;
 
             document.querySelectorAll('#authorChips .author-chip').forEach(chip => {
-                chip.addEventListener('click', () => {
+                chip.addEventListener('click', toggleAuthorFilter);
+                chip.addEventListener('keydown', e => {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleAuthorFilter.call(chip); }
+                });
+                function toggleAuthorFilter() {
                     const author = chip.dataset.author;
                     activeAuthorFilter = (activeAuthorFilter === author) ? null : author;
                     document.querySelectorAll('#authorChips .author-chip').forEach(c => {
                         c.classList.toggle('dim', activeAuthorFilter !== null && c.dataset.author !== activeAuthorFilter);
                     });
                     applyFilters();
-                });
+                }
             });
         }
 
@@ -914,10 +930,10 @@
                 const prv = s => { const tm = (s || '').trim(); return tm.length <= previewLen ? (tm || '(空)') : tm.slice(0, previewLen) + '…'; };
                 const items = conflicts.slice(0, 8).map(({ entry }) => {
                     const allFiles = [entry.baseFile, ...entry.conflicts.map(c => c.file)];
-                    return `<li>${escapeHTML(t('warnConflictLine').replace('{p1}', prv(entry.baseBefore)).replace('{p2}', prv(entry.conflicts[0].text)).replace('{files}', allFiles.join(' / ')))}</li>`;
+                    return `<li>${escapeHTML(t('warnConflictLine', { p1: prv(entry.baseBefore), p2: prv(entry.conflicts[0].text), files: allFiles.join(' / ') }))}</li>`;
                 }).join('');
-                const more = conflicts.length > 8 ? `<li>${escapeHTML(t('warnConflictMore').replace('{n}', conflicts.length - 8))}</li>` : '';
-                parts.push(`<div class="warn-title">${escapeHTML(t('warnConflict').replace('{n}', conflicts.length))}</div>
+                const more = conflicts.length > 8 ? `<li>${escapeHTML(t('warnConflictMore', { n: conflicts.length - 8 }))}</li>` : '';
+                parts.push(`<div class="warn-title">${escapeHTML(t('warnConflict', { n: conflicts.length }))}</div>
                     <div class="warn-hint">${escapeHTML(t('warnConflictHint'))}</div>
                     <details><summary>${escapeHTML(t('warnConflictDetail'))}</summary><ul class="warn-list">${items}${more}</ul></details>`);
             }
@@ -934,7 +950,7 @@
                 const minC = Math.min(...counts.map(([, c]) => c));
                 if (maxC !== minC) {
                     const details = counts.map(([n, c]) => `${escapeHTML(n)} (${c})`).join(' / ');
-                    parts.push(`<div style="margin-top:6px;">${escapeHTML(t('warnCountMismatch').replace('{details}', details))}</div>`);
+                    parts.push(`<div style="margin-top:6px;">${escapeHTML(t('warnCountMismatch', { details }))}</div>`);
                 }
             }
 
@@ -997,6 +1013,7 @@
             link.href = URL.createObjectURL(blob);
             link.download = `${baseFileName}_Reconstructed.doc`;
             link.click();
+            setTimeout(() => URL.revokeObjectURL(link.href), 1000);
         }
 
         function exportToWordTable() {
@@ -1005,10 +1022,12 @@
             <style> table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid black; padding: 8px; text-align: left; vertical-align: top; white-space: pre-wrap; } th { background-color: #D3D3D3; } ins, .ins-text { color: #27ae60; text-decoration: underline; font-weight: bold; } del { color: #e74c3c; text-decoration: line-through; } .badge { color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.78em; margin-right: 4px; } .ins-badge { background-color: #27ae60; } .del-badge { background-color: #e74c3c; } .fmt-badge { background-color: #f39c12; } .move-badge { background-color: #1abc9c; } .comment-badge { background-color: #3498db; } .type-tag { padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 0.85em; } .type-rev { background-color: #ffebee; color: #c62828; } .type-comment { background-color: #e3f2fd; color: #1565c0; } .type-both { background-color: #f3e5f5; color: #6a1b9a; } </style></head><body>
             <h2 style="text-align:center;">${t('exportTableTitle')}${escapeHTML(baseFileName)}</h2>`;
             const html = preHtml + document.getElementById('revisionTable').outerHTML + "</body></html>";
+            const blob = new Blob(['\uFEFF', html], { type: 'application/msword' });
             const link = document.createElement('a');
-            link.href = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(html);
+            link.href = URL.createObjectURL(blob);
             link.download = `${baseFileName}_Table.doc`;
             link.click();
+            setTimeout(() => URL.revokeObjectURL(link.href), 1000);
         }
 
         function exportToHTML() {
@@ -1020,6 +1039,7 @@
             link.href = URL.createObjectURL(new Blob([fullHTML], { type: 'text/html' }));
             link.download = `${baseFileName}_Table.html`;
             link.click();
+            setTimeout(() => URL.revokeObjectURL(link.href), 1000);
         }
 
         function exportToCSV() {
@@ -1038,11 +1058,27 @@
             link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
             link.download = `${baseFileName}_Table.csv`;
             link.click();
+            setTimeout(() => URL.revokeObjectURL(link.href), 1000);
         }
 
         function resetUI() {
             if (processedFileNames.size > 0 && !confirm(t('confirmClear'))) return;
-            location.reload();
+            combinedRevisionsMap.clear();
+            orderedParagraphIds = [];
+            processedFileNames.clear();
+            authorColors.clear();
+            activeAuthorFilter = null;
+            fileParaCounts.clear();
+            hasMissingParaId = false;
+            document.getElementById('resultSection').style.display = 'none';
+            document.getElementById('resultBody').innerHTML = '';
+            document.getElementById('statsBar').innerHTML = '';
+            document.getElementById('consistencyWarning').classList.add('hidden');
+            document.getElementById('consistencyWarning').innerHTML = '';
+            document.getElementById('fileList').innerHTML = '';
+            document.getElementById('status').innerHTML = '';
+            document.getElementById('searchBox').value = '';
+            document.getElementById('uploadSection').classList.remove('hidden');
         }
         
     </script>
