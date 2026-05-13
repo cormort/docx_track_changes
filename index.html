@@ -566,6 +566,7 @@
             const authors = new Set();
             const notesData = [];
             let hasRev = false;
+            const seenCommentIds = new Set();
 
             const getLocal = (n) => (n.tagName ? n.tagName.toLowerCase().replace(/^.*:/, '') : '');
 
@@ -623,9 +624,10 @@
                     authors.add(author);
                     notesData.push({ type: 'fmt', author: author, badgeClass: 'fmt-badge', key: 'badgeFmt' });
                     Array.from(node.childNodes).forEach(c => walk(c, inIns, inDel)); 
-                } else if (tag === "commentreference") {
+                } else if (tag === "commentrangestart" || tag === "commentreference") {
                     const cId = node.getAttribute("w:id");
-                    if (commentsMap && commentsMap[cId]) {
+                    if (cId && !seenCommentIds.has(cId) && commentsMap && commentsMap[cId]) {
+                        seenCommentIds.add(cId);
                         hasRev = true;
                         const c = commentsMap[cId];
                         authors.add(c.author);
