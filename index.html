@@ -162,6 +162,19 @@
         .ins-text { color: var(--c-ok); text-decoration: underline; font-weight: 600; }
         .comment-mark { background-color: #fff3cd; border-bottom: 2px dotted #ffc107; cursor: help; user-select: none; }
 
+        /* Warning Banner */
+        .warn-banner {
+            background: #fff8e1; border: 1px solid #f39c12; border-left: 4px solid #f39c12;
+            border-radius: var(--radius); padding: 12px 16px; margin-bottom: 14px;
+            color: #6b4f00; font-size: 0.92em;
+        }
+        .warn-banner .warn-title { font-weight: 700; margin-bottom: 4px; color: #b07700; }
+        .warn-banner .warn-hint { color: #7a5d00; margin-bottom: 4px; }
+        .warn-banner details { margin-top: 6px; }
+        .warn-banner summary { cursor: pointer; font-size: 0.9em; color: #555; user-select: none; }
+        .warn-banner .warn-list { margin: 6px 0 0 20px; padding: 0; font-size: 0.9em; }
+        .warn-banner .warn-list li { margin-bottom: 3px; word-break: break-word; }
+
         /* Hero */
         .hero-box { background: linear-gradient(135deg, #f8f9fb 0%, #eef2f7 100%); border: 1px solid var(--c-border); border-radius: var(--radius); padding: 32px; text-align: center; }
         .hero-box h3 { margin-top: 0; color: var(--c-text); }
@@ -176,7 +189,7 @@
             .lang-toggle { top: 10px; right: 10px; }
         }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/pizzip@3.1.5/dist/pizzip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pizzip@3.1.5/dist/pizzip.min.js" integrity="sha384-s3W9xK5a44nxsoRLXn9psDCOAYxJe3668Xm4+q8BLGja3+5zWbCMIodBZujNp9Dj" crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -198,6 +211,7 @@
         <div id="fileList"></div>
 
         <div id="resultSection" role="region" aria-label="解析結果">
+            <div id="consistencyWarning" class="warn-banner hidden" role="alert"></div>
             <div class="stats-bar" id="statsBar"></div>
 
             <div class="tabs-row" role="tablist">
@@ -293,6 +307,13 @@
                 badgeMoveOut: "移出",
                 authorUnknown: "未知",
                 confirmClear: "確定要清除所有已解析的檔案嗎？",
+                warnConflict: "偵測到 {n} 個段落的原稿在不同檔案間不一致",
+                warnConflictHint: "可能原因：有作者未全程使用「追蹤修訂」直接修改了原文，或檔案並非源自同一份原稿。受影響段落的合併結果可能不可靠。",
+                warnConflictDetail: "顯示詳細衝突位置",
+                warnConflictLine: '"{p1}" vs "{p2}" — 檔案：{files}',
+                warnConflictMore: "...另有 {n} 個衝突段落未顯示",
+                warnNoParaId: "部分段落缺少 w14:paraId（段落唯一識別碼），系統將以位置序號比對。若檔案段落順序不一致，可能導致對應錯誤。",
+                warnCountMismatch: "檔案段落數量不一致：{details}",
                 exportDocTitle: "多人修訂與備註重構文件：",
                 exportDocSrc: "來源檔案：",
                 exportTableTitle: "多人追蹤修訂與備註對照表 — ",
@@ -338,6 +359,13 @@
                 badgeMoveOut: "Move Out",
                 authorUnknown: "Unknown",
                 confirmClear: "Are you sure you want to clear all parsed files?",
+                warnConflict: "Detected {n} paragraph(s) whose source text differs across files",
+                warnConflictHint: "Likely cause: someone edited the original text without using Track Changes, or the files come from different sources. Merge results may be unreliable.",
+                warnConflictDetail: "Show conflict details",
+                warnConflictLine: '"{p1}" vs "{p2}" — files: {files}',
+                warnConflictMore: "...{n} more conflicting paragraph(s) not shown",
+                warnNoParaId: "Some paragraphs are missing w14:paraId (unique paragraph ID). Using position-based matching — may be unreliable if paragraph order differs between files.",
+                warnCountMismatch: "Paragraph count mismatch: {details}",
                 exportDocTitle: "Multi-user Revisions & Comments Doc: ",
                 exportDocSrc: "Source files: ",
                 exportTableTitle: "Revisions & Comments Comparison — ",
@@ -355,6 +383,7 @@
             document.querySelectorAll('[data-i18n]').forEach(el => { el.innerHTML = t(el.getAttribute('data-i18n')); });
             document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = t(el.getAttribute('data-i18n-placeholder')); });
 
+            renderConsistencyWarning();
             if (processedFileNames.size > 0 || orderedParagraphIds.length > 0) {
                 renderTable();
                 renderAuthorView();
@@ -373,6 +402,8 @@
         let baseFileName = "merged_revisions";
         let authorColors = new Map();
         let activeAuthorFilter = null;
+        let fileParaCounts = new Map();
+        let hasMissingParaId = false;
 
         const fileInput = document.getElementById('wordFiles');
         const statusDiv = document.getElementById('status');
@@ -463,9 +494,11 @@
                     for (let pNode of paragraphs) {
                         const revData = extractRevisions(pNode, commentsMap);
                         
+                        const attrParaId = pNode.getAttribute("w14:paraId");
+                        if (!attrParaId) hasMissingParaId = true;
                         let rawText = plainText(pNode).trim();
                         let fallbackId = rawText ? "txt_" + Array.from(rawText).reduce((s, c) => Math.imul(31, s) + c.charCodeAt(0) | 0, 0) : `pos_${pIndex}`;
-                        const paraId = pNode.getAttribute("w14:paraId") || fallbackId;
+                        const paraId = attrParaId || fallbackId;
 
                         if (!combinedRevisionsMap.has(paraId)) {
                             let baseText = revData ? revData.before : plainText(pNode);
@@ -486,10 +519,12 @@
                         combinedRevisionsMap.get(paraId).revisions.push({
                             docName: file.name,
                             data: revData,
-                            hasRev: revData !== null
+                            hasRev: revData !== null,
+                            beforeText: revData ? revData.before : plainText(pNode)
                         });
                         pIndex++;
                     }
+                    fileParaCounts.set(file.name, pIndex);
                     processedFileNames.add(file.name);
                 }
 
@@ -497,6 +532,7 @@
                 renderAuthorView();
                 renderStats();
                 renderFileList();
+                renderConsistencyWarning();
                 applyFilters();
 
                 setStatus(currentLang === 'zh' ? `解析完成！共處理 ${processedFileNames.size} 份檔案` : `Done! Processed ${processedFileNames.size} files`, 'green');
@@ -858,6 +894,52 @@
             });
         }
 
+        function renderConsistencyWarning() {
+            const banner = document.getElementById('consistencyWarning');
+            const parts = [];
+
+            // 1. Text consistency conflicts
+            const conflicts = [];
+            for (const paraId of orderedParagraphIds) {
+                const entry = combinedRevisionsMap.get(paraId);
+                if (entry.conflicts && entry.conflicts.length > 0) {
+                    conflicts.push({ paraId, entry });
+                }
+            }
+
+            if (conflicts.length > 0) {
+                const previewLen = 40;
+                const prv = s => { const tm = (s || '').trim(); return tm.length <= previewLen ? (tm || '(空)') : tm.slice(0, previewLen) + '…'; };
+                const items = conflicts.slice(0, 8).map(({ entry }) => {
+                    const allFiles = [entry.baseFile, ...entry.conflicts.map(c => c.file)];
+                    return `<li>${escapeHTML(t('warnConflictLine').replace('{p1}', prv(entry.baseBefore)).replace('{p2}', prv(entry.conflicts[0].text)).replace('{files}', allFiles.join(' / ')))}</li>`;
+                }).join('');
+                const more = conflicts.length > 8 ? `<li>${escapeHTML(t('warnConflictMore').replace('{n}', conflicts.length - 8))}</li>` : '';
+                parts.push(`<div class="warn-title">${escapeHTML(t('warnConflict').replace('{n}', conflicts.length))}</div>
+                    <div class="warn-hint">${escapeHTML(t('warnConflictHint'))}</div>
+                    <details><summary>${escapeHTML(t('warnConflictDetail'))}</summary><ul class="warn-list">${items}${more}</ul></details>`);
+            }
+
+            // 2. Missing paraId warning
+            if (hasMissingParaId) {
+                parts.push(`<div style="margin-top:6px;">${escapeHTML(t('warnNoParaId'))}</div>`);
+            }
+
+            // 3. Paragraph count mismatch
+            if (fileParaCounts.size > 1) {
+                const counts = [...fileParaCounts.entries()];
+                const maxC = Math.max(...counts.map(([, c]) => c));
+                const minC = Math.min(...counts.map(([, c]) => c));
+                if (maxC !== minC) {
+                    const details = counts.map(([n, c]) => `${escapeHTML(n)} (${c})`).join(' / ');
+                    parts.push(`<div style="margin-top:6px;">${escapeHTML(t('warnCountMismatch').replace('{details}', details))}</div>`);
+                }
+            }
+
+            if (parts.length === 0) { banner.classList.add('hidden'); banner.innerHTML = ''; }
+            else { banner.innerHTML = parts.join('<hr style="border:none;border-top:1px solid rgba(0,0,0,.1);margin:8px 0;">'); banner.classList.remove('hidden'); }
+        }
+
         // ==========================================
         // Exports
         // ==========================================
@@ -944,7 +1026,8 @@
             rows.forEach(row => {
                 const cells = Array.from(row.querySelectorAll("th, td")).map(c => {
                     const v = c.getAttribute('data-csv-value');
-                    const val = v !== null ? v : c.innerText.replace(/\s+/g, ' ').trim();
+                    let val = v !== null ? v : c.innerText.replace(/\s+/g, ' ').trim();
+                    if (/^[=+\-@\t]/.test(val)) val = "'" + val;
                     return `"${val.replace(/"/g, '""')}"`;
                 });
                 csv += cells.join(",") + "\r\n";
