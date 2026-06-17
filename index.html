@@ -582,7 +582,7 @@
             justify-content: center;
             flex-wrap: wrap;
             gap: 14px;
-            margin: 22px 0;
+            margin: 10px 0 20px 0; /* 修改間距適應新位置 */
         }
 
         /* 表格 */
@@ -738,7 +738,7 @@
             color: #666;
             font-size: 0.95em;
             line-height: 1.7;
-            margin-top: -8px;
+            margin-bottom: 20px; /* 修改間距適應新位置 */
         }
 
         @media (max-width: 768px) {
@@ -1066,6 +1066,19 @@
             ⚠️ 請記得手動調整國定假日、學校活動、校際交流、段考或比賽日。
         </div>
 
+        <div class="toolbar">
+            <button class="btn-copy" onclick="copyTable()" data-tooltip="複製後可直接貼到 Google Sheet 或 Excel">
+                📋 複製表格到 Google Sheet
+            </button>
+            <button class="btn-clear" onclick="clearTable()" data-tooltip="刪除表格內所有資料">
+                🗑️ 清空全部
+            </button>
+        </div>
+
+        <div class="copy-hint">
+            複製後請打開 Google Sheet，點選要貼上的第一格，例如 A1，按 <strong>Ctrl + V</strong>；Mac 請按 <strong>Cmd + V</strong>。
+        </div>
+
         <table id="scheduleTable">
             <thead>
                 <tr>
@@ -1089,19 +1102,6 @@
         </div>
     </div>
 
-    <div class="toolbar">
-        <button class="btn-copy" onclick="copyTable()" data-tooltip="複製後可直接貼到 Google Sheet 或 Excel">
-            📋 複製表格到 Google Sheet
-        </button>
-        <button class="btn-clear" onclick="clearTable()" data-tooltip="刪除表格內所有資料">
-            🗑️ 清空全部
-        </button>
-    </div>
-
-    <div class="copy-hint">
-        複製後請打開 Google Sheet，點選要貼上的第一格，例如 A1，按 <strong>Ctrl + V</strong>；Mac 請按 <strong>Cmd + V</strong>。
-    </div>
-
     <datalist id="activityOptions">
         <option value="A團合奏／B團分組">
         <option value="A團分組／B團合奏">
@@ -1118,7 +1118,6 @@
     <script>
         const daysMap = ["日", "一", "二", "三", "四", "五", "六"];
 
-        // 新增的四個重要函式
         function updateEmptyState() {
             const tbody = document.querySelector("#scheduleTable tbody");
             const emptyMsg = document.getElementById("emptyMsg");
@@ -1155,7 +1154,6 @@
         function escapeAttr(unsafe) {
             return escapeHtml(unsafe);
         }
-        // 新增函式結束
 
         window.addEventListener("DOMContentLoaded", function () {
             initDefaultDates();
