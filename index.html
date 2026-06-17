@@ -1,1086 +1,1656 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Word 多人修訂與備註合併神器</title>
+    <title>樂團值班表產生器</title>
+
     <style>
-        :root {
-            --c-bg: #f4f7f9;
-            --c-card: #ffffff;
-            --c-text: #2c3e50;
-            --c-muted: #7f8c8d;
-            --c-border: #e1e7ec;
-            --c-primary: #3498db;
-            --c-primary-dark: #2980b9;
-            --c-accent: #8e44ad;
-            --c-ok: #27ae60;
-            --c-warn: #f39c12;
-            --c-bad: #e74c3c;
-            --shadow-sm: 0 2px 4px rgba(0,0,0,.06);
-            --shadow-md: 0 4px 15px rgba(0,0,0,.08);
-            --radius: 8px;
+        *, *::before, *::after {
+            box-sizing: border-box;
         }
-        * { box-sizing: border-box; }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang TC", "Microsoft JhengHei", sans-serif;
-            line-height: 1.6; margin: 0; padding: 20px; background-color: var(--c-bg); color: #333;
+            font-family: "Microsoft JhengHei", "Heiti TC", sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f2f5;
+            overflow-x: hidden;
+            color: #333;
         }
-        .container {
-            max-width: 1350px; margin: 20px auto; padding: 28px;
-            background-color: var(--c-card);
-            border-radius: var(--radius); box-shadow: var(--shadow-md);
+
+        h1 {
+            text-align: center;
+            margin-bottom: 8px;
+            color: #222;
+            font-size: 2rem;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            transition: all 0.2s;
+            margin-top: auto;
+            font-family: inherit;
+        }
+
+        button:hover {
+            opacity: 0.92;
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        input {
+            font-family: inherit;
+        }
+
+        /* Tooltip */
+        [data-tooltip] {
             position: relative;
         }
-        h1 { color: var(--c-text); text-align: center; border-bottom: 2px solid var(--c-primary); padding-bottom: 12px; margin: 0 0 24px; }
-        .subtitle { text-align: center; color: var(--c-muted); margin-top: -16px; margin-bottom: 24px; font-size: 0.95em; }
 
-        /* Lang Toggle */
-        .lang-toggle {
-            position: absolute; top: 20px; right: 28px;
-            background-color: transparent; color: var(--c-primary);
-            border: 2px solid var(--c-primary); border-radius: 20px;
-            padding: 4px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
+        [data-tooltip]:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            white-space: nowrap;
+            z-index: 1000;
+            pointer-events: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            animation: fadeIn 0.2s forwards;
+        }
+
+        [data-tooltip]:hover::before {
+            content: "";
+            position: absolute;
+            bottom: 115%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: #333;
+            z-index: 1001;
+            pointer-events: none;
+            animation: fadeIn 0.2s forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(4px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        /* 新手快速開始 */
+        .quick-start-box {
+            background: #ffffff;
+            border: 2px solid #1976D2;
+            border-radius: 16px;
+            padding: 22px;
+            margin-bottom: 22px;
+            box-shadow: 0 4px 14px rgba(25, 118, 210, 0.12);
+        }
+
+        .quick-start-title {
+            font-size: 1.25em;
+            font-weight: bold;
+            color: #1976D2;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .quick-start-steps {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+        }
+
+        .quick-step {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #e3f2fd;
+            padding: 14px;
+            border-radius: 12px;
+            min-height: 76px;
+        }
+
+        .step-num {
+            width: 36px;
+            height: 36px;
+            background: #1976D2;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+            font-size: 1.05em;
+        }
+
+        .quick-step strong {
+            display: block;
+            color: #222;
+            margin-bottom: 4px;
+        }
+
+        .quick-step span {
+            display: block;
+            font-size: 0.92em;
+            color: #555;
+            line-height: 1.4;
+        }
+
+        /* 使用說明 */
+        .guide-toggle-btn,
+        .advanced-toggle-btn {
+            display: block;
+            margin: 0 auto 20px auto;
+            background-color: #fff;
+            color: #1976D2;
+            border: 2px solid #1976D2;
+            width: auto;
+            padding: 10px 24px;
+            border-radius: 999px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
             transition: all 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.08);
         }
-        .lang-toggle:hover { background-color: var(--c-primary); color: white; }
 
-        /* Upload */
-        #uploadSection { margin-bottom: 20px; }
-        #fileDropZone {
-            border: 2px dashed var(--c-primary); border-radius: var(--radius); padding: 40px; text-align: center;
-            color: #888; font-size: 1.15em; transition: all 0.2s; cursor: pointer; background: #fafcfe;
+        .guide-toggle-btn:hover {
+            background-color: #1976D2;
+            color: #fff;
         }
-        #fileDropZone:hover, #fileDropZone.dragover { background-color: #eaf5ff; border-color: var(--c-primary-dark); color: #444; }
-        #fileDropZone.compact { padding: 16px; font-size: 0.95em; }
-        .hidden { display: none !important; }
 
-        /* Status */
-        #status { text-align: center; font-weight: 600; margin: 12px 0; min-height: 24px; display: flex; justify-content: center; align-items: center; gap: 8px; }
-        .spinner {
-            width: 16px; height: 16px; border: 2px solid #ddd; border-top-color: var(--c-primary);
-            border-radius: 50%; animation: spin 0.7s linear infinite;
+        .advanced-toggle-btn {
+            color: #FF5722;
+            border-color: #FF5722;
+            margin-top: 10px;
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* File list chips */
-        #fileList { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 16px; justify-content: center; }
-        .file-chip {
-            background: #ecf0f1; border-radius: 16px; padding: 4px 12px; font-size: 0.85em;
-            color: #555; display: inline-flex; align-items: center; gap: 6px;
+        .advanced-toggle-btn:hover {
+            background-color: #FF5722;
+            color: #fff;
         }
-        .file-chip::before { content: "📄"; }
 
-        /* Stats */
-        .stats-bar {
-            display: flex; flex-wrap: wrap; gap: 12px; padding: 14px 16px; margin-bottom: 18px;
-            background: linear-gradient(135deg, #f8fafc 0%, #eef4f8 100%);
-            border: 1px solid var(--c-border); border-radius: var(--radius);
+        .guide-container {
+            background: #fffde7;
+            border-left: 6px solid #fbc02d;
+            padding: 25px 30px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            line-height: 1.7;
+            color: #333;
+            animation: fadeInGuide 0.25s ease-in-out;
         }
-        .stat { display: flex; flex-direction: column; min-width: 90px; }
-        .stat-num { font-size: 1.4em; font-weight: 700; color: var(--c-text); }
-        .stat-label { font-size: 0.78em; color: var(--c-muted); text-transform: uppercase; letter-spacing: 0.5px; }
-        .stat-divider { width: 1px; background: var(--c-border); }
-        .author-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; flex: 1; min-width: 200px; }
-        .author-chip {
-            display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 12px;
-            font-size: 0.85em; font-weight: 600; cursor: pointer; user-select: none;
-            border: 1.5px solid transparent; transition: all 0.15s;
+
+        @keyframes fadeInGuide {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
-        .author-chip:hover { transform: translateY(-1px); }
-        .author-chip.dim { opacity: 0.4; }
-        .author-chip .count { background: rgba(255,255,255,.85); color: #333; padding: 0 6px; border-radius: 8px; font-size: 0.85em; }
 
-        /* Tabs */
-        #resultSection { display: none; margin-top: 12px; }
-        .tabs-row { display: flex; align-items: flex-end; border-bottom: 2px solid var(--c-primary); margin-bottom: 18px; gap: 4px; }
-        .tab-btn {
-            padding: 11px 22px; cursor: pointer; background-color: #ecf0f1; border: 1px solid #cdd6db;
-            border-bottom: none; border-radius: 6px 6px 0 0; font-size: 15px; font-weight: 600; color: var(--c-muted);
-            transition: 0.15s; font-family: inherit;
+        .guide-container h3 {
+            margin-top: 0;
+            color: #f57f17;
+            font-size: 1.3em;
+            border-bottom: 1px dashed #ccc;
+            padding-bottom: 10px;
         }
-        .tab-btn:hover:not(.active) { background-color: #dfe6e9; color: #444; }
-        .tab-btn.active { background-color: var(--c-primary); color: white; border-color: var(--c-primary); }
-        .tab-btn:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
-        .tab-actions { margin-left: auto; display: flex; gap: 6px; padding-bottom: 4px; }
-        .tab-content { display: none; animation: fadeIn 0.25s ease-in-out; }
-        .tab-content.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: none; } }
 
-        /* Toolbar */
-        .toolbar { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
-        .toolbar .search-box {
-            flex: 1; min-width: 200px; padding: 8px 12px; border: 1px solid var(--c-border);
-            border-radius: 6px; font-size: 14px; font-family: inherit;
+        .guide-container h4 {
+            margin: 18px 0 6px 0;
+            color: #1976D2;
         }
-        .toolbar .search-box:focus { outline: none; border-color: var(--c-primary); box-shadow: 0 0 0 3px rgba(52,152,219,.15); }
-        .btn {
-            padding: 8px 14px; border: none; border-radius: 5px; cursor: pointer; font-weight: 600;
-            font-family: inherit; font-size: 14px; display: inline-flex; align-items: center; gap: 5px;
-            transition: 0.15s; box-shadow: var(--shadow-sm);
+
+        .guide-container ul,
+        .guide-container ol {
+            margin-top: 5px;
+            margin-bottom: 15px;
+            padding-left: 25px;
         }
-        .btn:hover { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,.12); }
-        .btn:active { transform: translateY(0); }
-        .btn-primary { background-color: var(--c-accent); color: white; font-size: 17px; padding: 14px 28px; box-shadow: 0 4px 10px rgba(142,68,173,.3); margin: 16px auto; display: block; }
-        .btn-primary:hover { background-color: #9b59b6; box-shadow: 0 6px 14px rgba(142,68,173,.4); }
-        .btn-word { background-color: var(--c-primary-dark); color: white; }
-        .btn-html { background-color: var(--c-primary); color: white; }
-        .btn-csv { background-color: var(--c-ok); color: white; }
-        .btn-reset { background-color: var(--c-bad); color: white; }
-        .btn-ghost { background-color: #ecf0f1; color: #555; }
-        .btn-ghost:hover { background-color: #dfe6e9; }
 
-        /* Table */
-        .table-wrap { max-height: 70vh; overflow: auto; border: 1px solid var(--c-border); border-radius: var(--radius); background: white; }
-        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        th, td { border-bottom: 1px solid var(--c-border); padding: 12px; text-align: left; vertical-align: top; word-wrap: break-word; white-space: pre-wrap; }
-        th { background-color: var(--c-text); color: white; position: sticky; top: 0; z-index: 1; font-weight: 600; }
-        tr:hover td { background-color: #f8fbfd; }
-        tr.repeated-para-row td { border-top: 1px dashed #d4dde4; }
-        tr.row-group-start td { border-top: 3px solid var(--c-primary); }
-        .empty-row td { text-align: center; color: var(--c-muted); padding: 40px 12px; font-style: italic; }
-
-        .author-cell { display: flex; flex-direction: column; gap: 4px; }
-        .author-tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.85em; font-weight: 600; }
-        .row-num { color: var(--c-muted); font-size: 0.8em; }
-        .para-num { color: var(--c-primary); font-size: 0.9em; font-weight: bold; margin-bottom: 4px; }
-        
-        /* Badges & Types */
-        .badge { color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.78em; margin-right: 4px; font-weight: 600; }
-        .ins-badge { background-color: var(--c-ok); }
-        .del-badge { background-color: var(--c-bad); }
-        .fmt-badge { background-color: var(--c-warn); }
-        .move-badge { background-color: #1abc9c; }
-        .comment-badge { background-color: var(--c-primary); }
-        
-        .type-tag { display: inline-block; padding: 4px 8px; border-radius: 6px; font-size: 0.85em; font-weight: 600; text-align: center; min-width: 60px; }
-        .type-rev { background-color: #ffebee; color: #c62828; }
-        .type-comment { background-color: #e3f2fd; color: #1565c0; }
-        .type-both { background-color: #f3e5f5; color: #6a1b9a; }
-
-        del { color: var(--c-bad); text-decoration: line-through; }
-        .ins-text { color: var(--c-ok); text-decoration: underline; font-weight: 600; }
-        .comment-mark { background-color: #fff3cd; border-bottom: 2px dotted #ffc107; cursor: help; user-select: none; }
-
-        /* Warning Banner */
-        .warn-banner {
-            background: #fff8e1; border: 1px solid #f39c12; border-left: 4px solid #f39c12;
-            border-radius: var(--radius); padding: 12px 16px; margin-bottom: 14px;
-            color: #6b4f00; font-size: 0.92em;
+        .guide-container li {
+            margin-bottom: 6px;
         }
-        .warn-banner .warn-title { font-weight: 700; margin-bottom: 4px; color: #b07700; }
-        .warn-banner .warn-hint { color: #7a5d00; margin-bottom: 4px; }
-        .warn-banner details { margin-top: 6px; }
-        .warn-banner summary { cursor: pointer; font-size: 0.9em; color: #555; user-select: none; }
-        .warn-banner .warn-list { margin: 6px 0 0 20px; padding: 0; font-size: 0.9em; }
-        .warn-banner .warn-list li { margin-bottom: 3px; word-break: break-word; }
 
-        /* Hero */
-        .hero-box { background: linear-gradient(135deg, #f8f9fb 0%, #eef2f7 100%); border: 1px solid var(--c-border); border-radius: var(--radius); padding: 32px; text-align: center; }
-        .hero-box h3 { margin-top: 0; color: var(--c-text); }
-        .hero-box p { color: #555; font-size: 1.05em; }
+        .highlight {
+            background-color: #ffe0b2;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+            color: #e65100;
+        }
 
-        @media (max-width: 720px) {
-            .container { padding: 16px; margin: 8px; }
-            .tabs-row { flex-wrap: wrap; }
-            .tab-actions { margin-left: 0; width: 100%; justify-content: flex-end; }
-            th, td { padding: 8px; font-size: 0.9em; }
-            table { table-layout: auto; }
-            .lang-toggle { top: 10px; right: 10px; }
+        .alert-box {
+            background-color: #ffebee;
+            border-left: 5px solid #f44336;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 6px;
+        }
+
+        /* 區塊 */
+        .config-section {
+            background: white;
+            padding: 25px;
+            border-radius: 14px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            margin-bottom: 25px;
+            width: 100%;
+        }
+
+        .section-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #444;
+            margin-bottom: 18px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .section-note {
+            font-size: 0.88em;
+            color: #777;
+            font-weight: normal;
+        }
+
+        .date-range-global {
+            text-align: center;
+            padding: 16px;
+            background: #e3f2fd;
+            border-radius: 10px;
+            margin-bottom: 22px;
+            border: 1px solid #bbdefb;
+        }
+
+        .date-range-global input {
+            padding: 9px;
+            border: 1px solid #bbb;
+            border-radius: 6px;
+            font-size: 1em;
+            margin: 0 4px;
+        }
+
+        .quick-btn-group {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        button.btn-quick {
+            width: auto;
+            padding: 7px 16px;
+            margin-top: 0;
+            margin-bottom: 5px;
+            font-size: 0.95em;
+            font-weight: normal;
+            background-color: #fff;
+            color: #1976D2;
+            border: 1px solid #1976D2;
+            border-radius: 999px;
+        }
+
+        button.btn-quick:hover {
+            background-color: #1976D2;
+            color: #fff;
+        }
+
+        button.btn-quick.train-color {
+            color: #FF5722;
+            border-color: #FF5722;
+        }
+
+        button.btn-quick.train-color:hover {
+            background-color: #FF5722;
+            color: #fff;
+        }
+
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 18px;
+        }
+
+        .action-card {
+            padding: 20px;
+            border-radius: 12px;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .card-main {
+            border-top: 6px solid #1976D2;
+            background: #f7fbff;
+        }
+
+        .card-ab {
+            border-top: 5px solid #4CAF50;
+        }
+
+        .card-silk {
+            border-top: 5px solid #9C27B0;
+        }
+
+        .card-training {
+            border-top: 5px solid #FF5722;
+            background-color: #fff8f5;
+            align-items: center;
+        }
+
+        .card-header {
+            font-weight: bold;
+            font-size: 1.16em;
+            color: #333;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        .card-desc {
+            color: #666;
+            font-size: 0.94em;
+            line-height: 1.6;
+            text-align: center;
+        }
+
+        .input-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.95em;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .input-row label {
+            width: 32%;
+            color: #666;
+            font-weight: bold;
+        }
+
+        .input-row input[type="text"] {
+            width: 64%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 0.95em;
+        }
+
+        .day-selector {
+            display: flex;
+            justify-content: space-between;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #eee;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .day-label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            font-size: 0.9em;
+            color: #555;
+            flex: 1;
+            padding: 4px 2px;
+            border-radius: 6px;
+        }
+
+        .day-label:hover {
+            background-color: #e8f5e9;
+        }
+
+        .day-label input {
+            margin-bottom: 5px;
+            cursor: pointer;
+            transform: scale(1.15);
+        }
+
+        .train-day-selector {
+            width: 100%;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+            background-color: #ffebe6;
+            border-color: #ffccbc;
+        }
+
+        .train-day-selector .day-label:hover {
+            background-color: #ffccbc;
+        }
+
+        .train-master-label {
+            flex: 0 1 auto;
+            flex-direction: row;
+            gap: 5px;
+            align-items: center;
+            color: #d84315;
+            font-weight: bold;
+            padding: 0 5px;
+        }
+
+        .btn-ab {
+            background-color: #4CAF50;
+        }
+
+        .btn-silk {
+            background-color: #9C27B0;
+        }
+
+        .btn-train {
+            background-color: #FF5722;
+        }
+
+        .btn-all {
+            background: linear-gradient(135deg, #1976D2, #0D47A1);
+            font-size: 18px;
+            padding: 16px;
+            box-shadow: 0 4px 10px rgba(25, 118, 210, 0.25);
+        }
+
+        .btn-copy {
+            background-color: #2196F3;
+            width: auto;
+            padding: 12px 30px;
+        }
+
+        .btn-clear {
+            background-color: white;
+            border: 1px solid #ccc;
+            color: #666;
+            width: auto;
+            padding: 12px 25px;
+        }
+
+        .btn-clear:hover {
+            background-color: #ffebee;
+            color: #d32f2f;
+            border-color: #d32f2f;
+        }
+
+        .mini-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .mini-actions button {
+            flex: 1;
+            min-width: 140px;
+        }
+
+        /* 狀態提示 */
+        .status-message {
+            display: none;
+            padding: 14px 18px;
+            border-radius: 10px;
+            margin: 18px 0;
+            font-weight: bold;
+            line-height: 1.6;
+            animation: statusFade 0.2s ease-in-out;
+        }
+
+        @keyframes statusFade {
+            from {
+                opacity: 0;
+                transform: translateY(-4px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .status-success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-left: 5px solid #4CAF50;
+        }
+
+        .status-warning {
+            background: #fff8e1;
+            color: #f57f17;
+            border-left: 5px solid #fbc02d;
+        }
+
+        .status-error {
+            background: #ffebee;
+            color: #c62828;
+            border-left: 5px solid #f44336;
+        }
+
+        /* 工具列 */
+        .toolbar {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin: 22px 0;
+        }
+
+        /* 表格 */
+        .table-section-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .table-section-title h2 {
+            margin: 0;
+            font-size: 1.25em;
+            color: #333;
+        }
+
+        .table-count {
+            color: #1976D2;
+            font-weight: bold;
+            background: #e3f2fd;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 0.95em;
+        }
+
+        .table-reminder {
+            text-align: right;
+            color: #d32f2f;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+            font-weight: bold;
+            line-height: 1.5;
+        }
+
+        .table-container {
+            background: white;
+            padding: 20px;
+            border-radius: 14px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            min-height: 300px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 900px;
+        }
+
+        th, td {
+            border: 1px solid #e0e0e0;
+            padding: 10px;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            color: #495057;
+            font-weight: bold;
+        }
+
+        input.editable-cell {
+            width: 96%;
+            border: 1px solid transparent;
+            text-align: center;
+            font-size: 15px;
+            background: transparent;
+            font-family: inherit;
+            padding: 6px 4px;
+            border-radius: 6px;
+        }
+
+        input.editable-cell:hover,
+        input.editable-cell:focus {
+            border: 1px solid #2196F3;
+            background: #fff;
+            outline: none;
+        }
+
+        input.date-cell {
+            min-width: 115px;
+        }
+
+        .action-cell {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            min-width: 88px;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 6px 10px;
+            border-radius: 6px;
+            width: auto;
+            transition: background 0.2s;
+            margin: 0;
+        }
+
+        .add-row-btn {
+            color: #4CAF50;
+            background: #e8f5e9;
+        }
+
+        .add-row-btn:hover {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .del-btn {
+            color: #f44336;
+            background: #ffebee;
+        }
+
+        .del-btn:hover {
+            background: #f44336;
+            color: white;
+        }
+
+        .empty-message {
+            text-align: center;
+            color: #777;
+            padding: 48px 20px;
+            line-height: 1.8;
+        }
+
+        .empty-message .empty-icon {
+            font-size: 2.4em;
+            margin-bottom: 6px;
+        }
+
+        .empty-message strong {
+            display: block;
+            font-size: 1.2em;
+            color: #444;
+        }
+
+        .empty-message span {
+            color: #1976D2;
+            font-weight: bold;
+        }
+
+        .copy-hint {
+            text-align: center;
+            color: #666;
+            font-size: 0.95em;
+            line-height: 1.7;
+            margin-top: -8px;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 1.55rem;
+            }
+
+            .subtitle {
+                font-size: 0.95em;
+            }
+
+            .quick-start-box,
+            .config-section,
+            .table-container {
+                padding: 15px;
+                margin-bottom: 16px;
+            }
+
+            .quick-start-steps {
+                grid-template-columns: 1fr;
+            }
+
+            .action-card {
+                padding: 15px;
+            }
+
+            .date-range-global input {
+                margin: 5px 0;
+                width: 100%;
+            }
+
+            .input-row label,
+            .input-row input[type="text"] {
+                width: 100%;
+            }
+
+            .toolbar {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .btn-copy,
+            .btn-clear {
+                width: 100%;
+            }
+
+            .table-reminder {
+                text-align: left;
+            }
+
+            [data-tooltip]:hover::after,
+            [data-tooltip]:hover::before {
+                display: none;
+            }
         }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/pizzip@3.1.5/dist/pizzip.min.js" integrity="sha384-s3W9xK5a44nxsoRLXn9psDCOAYxJe3668Xm4+q8BLGja3+5zWbCMIodBZujNp9Dj" crossorigin="anonymous"></script>
 </head>
+
 <body>
 
-    <div class="container">
-        <button id="langBtn" class="lang-toggle" onclick="toggleLanguage()">English</button>
-        <h1 data-i18n="mainTitle">Word 多人修訂與備註合併神器</h1>
-        <p class="subtitle" data-i18n="subTitle">將多份來自同一原稿的 .docx 修訂與備註版本合併為一份對照表 / 重構文件</p>
+    <h1>樂團值班表產生器</h1>
+    <div class="subtitle">
+        快速產生學期團練、暑訓、寒訓值班表，完成後可直接複製貼到 Google Sheet。
+    </div>
 
-        <div id="uploadSection">
-            <div id="fileDropZone" onclick="document.getElementById('wordFiles').click();" role="button" tabindex="0"
-                 onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('wordFiles').click();}">
-                <span data-i18n="dropTextMain">將 <b>多個</b> .docx 檔案拖曳至此處，或點擊選擇檔案</span>
-                <br><span style="font-size:0.85em; color:#888;" data-i18n="dropTextSub">(請確保上傳的檔案皆源自同一份原始文件)</span>
-                <input type="file" id="wordFiles" accept=".docx" multiple class="hidden">
-            </div>
-        </div>
-
-        <div id="status"></div>
-        <div id="fileList"></div>
-
-        <div id="resultSection" role="region" aria-label="解析結果">
-            <div id="consistencyWarning" class="warn-banner hidden" role="alert"></div>
-            <div class="stats-bar" id="statsBar"></div>
-
-            <div class="tabs-row" role="tablist">
-                <button class="tab-btn active" role="tab" aria-selected="true" data-tab="tab-table" data-i18n="tabTable">👁️ 檢視與匯出表格</button>
-                <button class="tab-btn" role="tab" aria-selected="false" data-tab="tab-author" data-i18n="tabAuthor">👤 作者獨立視角</button>
-                <button class="tab-btn" role="tab" aria-selected="false" data-tab="tab-doc" data-i18n="tabDoc">📄 重構合併文件</button>
-                <div class="tab-actions">
-                    <button class="btn btn-ghost" onclick="document.getElementById('wordFiles').click()" data-i18n="btnAdd">➕ 加入更多檔案</button>
-                    <button class="btn btn-reset" onclick="resetUI()" data-i18n="btnClear">🔄 全部清除</button>
+    <div class="quick-start-box">
+        <div class="quick-start-title">🚀 第一次使用？照這 3 步就好</div>
+        <div class="quick-start-steps">
+            <div class="quick-step">
+                <div class="step-num">1</div>
+                <div>
+                    <strong>選擇學期</strong>
+                    <span>按「上學期」或「下學期」，系統會自動帶入日期。</span>
                 </div>
             </div>
-
-            <div id="tab-table" class="tab-content active" role="tabpanel">
-                <div class="toolbar">
-                    <input type="text" class="search-box" id="searchBox" data-i18n-placeholder="searchPH" placeholder="🔍 在修訂或備註中搜尋..." aria-label="搜尋">
-                    <button class="btn btn-word" onclick="exportToWordTable()" data-i18n="btnExportWord">📝 匯出 Word</button>
-                    <button class="btn btn-html" onclick="exportToHTML()" data-i18n="btnExportHtml">🌐 匯出 HTML</button>
-                    <button class="btn btn-csv" onclick="exportToCSV()" data-i18n="btnExportCsv">📊 匯出 CSV</button>
-                </div>
-                <div class="table-wrap">
-                    <table id="revisionTable">
-                        <thead>
-                            <tr>
-                                <th style="width:12%" data-i18n="thAuthor">段落順序 + 作者</th>
-                                <th style="width:8%; text-align:center;" data-i18n="thType">類型</th>
-                                <th style="width:30%" data-i18n="thPara">段落文字 (含修訂與備註)</th>
-                                <th style="width:23%" data-i18n="thBase">原始段落</th>
-                                <th style="width:27%" data-i18n="thNote">說明 (針對該作者的紀錄)</th>
-                            </tr>
-                        </thead>
-                        <tbody id="resultBody"></tbody>
-                    </table>
+            <div class="quick-step">
+                <div class="step-num">2</div>
+                <div>
+                    <strong>產生總表</strong>
+                    <span>第一次使用建議直接按「產生完整值班表」。</span>
                 </div>
             </div>
-
-            <div id="tab-author" class="tab-content" role="tabpanel">
-                <div id="authorViewContent"></div>
-            </div>
-
-            <div id="tab-doc" class="tab-content" role="tabpanel">
-                <div class="hero-box">
-                    <h3 data-i18n="heroTitle">擺脫 XML 衝突！全新重構乾淨的合併文件</h3>
-                    <p data-i18n="heroP1">此功能避開了 Word 底層極易損毀的追蹤修訂機制，改為直接讀取 HTML 視覺資料。<br><b>系統將以原文件的段落順序，重新生成一份完整且不會跑版的 Word 文件。</b></p>
-                    <button class="btn btn-primary" onclick="exportToVisualDoc()" data-i18n="btnDownloadDoc">📄 下載重構的合併文件 (.doc)</button>
-                    <p style="font-size: 0.9em; color: var(--c-muted);" data-i18n="heroP2">※ 此檔案保留了文件的原始閱讀動線，包含備註也會整合標示；有多人修改的段落，會自動分列並用顏色標示作者與內容。</p>
+            <div class="quick-step">
+                <div class="step-num">3</div>
+                <div>
+                    <strong>檢查後複製</strong>
+                    <span>刪除假日或調整活動後，複製貼到 Google Sheet。</span>
                 </div>
             </div>
         </div>
     </div>
 
+    <button id="toggleGuideBtn" class="guide-toggle-btn" onclick="toggleGuide()">📖 顯示完整使用說明</button>
+
+    <div id="guideContainer" class="guide-container">
+        <h3>🎵 使用說明</h3>
+
+        <h4>一、最簡單的使用方式</h4>
+        <ol>
+            <li>先按「上學期」或「下學期」，確認日期區間。</li>
+            <li>確認 A/B 團與絲竹團的星期、活動內容、時間。</li>
+            <li>按下 <strong>「✅ 產生完整值班表」</strong>。</li>
+            <li>檢查表格，刪除國定假日、比賽日、校際交流日等不需要值班的日期。</li>
+            <li>按 <strong>「📋 複製表格到 Google Sheet」</strong>，到共用表格貼上。</li>
+        </ol>
+
+        <h4>二、如果要加入暑訓 / 寒訓</h4>
+        <ol>
+            <li>點開「＋ 加入暑訓 / 寒訓或連假加練」。</li>
+            <li>使用快捷按鈕帶入暑訓或寒訓日期，也可以自己修改日期。</li>
+            <li>勾選要產生的星期。</li>
+            <li>按「＋ 加入訓練日程」，系統會保留原表格並自動插入排序。</li>
+        </ol>
+
+        <h4>三、表格可以手動修改</h4>
+        <ul>
+            <li>日期、活動內容、時間都可以直接點擊修改。</li>
+            <li>修改日期後，星期會自動更新，並自動排序。</li>
+            <li>每列左側的「＋」可以在下方插入一列，「×」可以刪除該列。</li>
+        </ul>
+
+        <div class="alert-box">
+            <strong style="color:#d32f2f;">⚠️ 重要提醒：</strong><br>
+            本工具不會自動連動國定假日、學校行事曆、比賽日或特殊活動日。<br>
+            產生表格後，請務必自行檢查並手動刪除或修改。
+        </div>
+    </div>
+
+    <div class="config-section">
+        <div class="section-title">
+            <span>① 先產生學期例行值班表</span>
+            <span class="section-note">新手建議：確認日期後，直接按藍色主按鈕</span>
+        </div>
+
+        <div class="date-range-global">
+            <div>
+                <span data-tooltip="請選擇學期第一天與最後一天">📅 學期區間：</span>
+                <input type="date" id="semStartDate">
+                至
+                <input type="date" id="semEndDate">
+            </div>
+
+            <div class="quick-btn-group">
+                <button class="btn-quick" onclick="quickSetSemester(1)" data-tooltip="自動填入：8/30 至隔年 1/20">上學期</button>
+                <button class="btn-quick" onclick="quickSetSemester(2)" data-tooltip="自動填入：2/11 至 6/30">下學期</button>
+            </div>
+        </div>
+
+        <div class="action-grid">
+            <div class="action-card card-ab">
+                <div class="card-header">🎻 A/B 團設定</div>
+
+                <div class="day-selector" id="daysAB" data-tooltip="勾選 A/B 團要練習的星期">
+                    <label class="day-label"><input type="checkbox" value="1"><span>一</span></label>
+                    <label class="day-label"><input type="checkbox" value="2" checked><span>二</span></label>
+                    <label class="day-label"><input type="checkbox" value="3"><span>三</span></label>
+                    <label class="day-label"><input type="checkbox" value="4" checked><span>四</span></label>
+                    <label class="day-label"><input type="checkbox" value="5"><span>五</span></label>
+                </div>
+
+                <div class="input-row">
+                    <label>週二內容</label>
+                    <input type="text" id="txtAB_Tue" value="A團分組／B團合奏">
+                </div>
+
+                <div class="input-row">
+                    <label>週四內容</label>
+                    <input type="text" id="txtAB_Thu" value="A團合奏／B團分組">
+                </div>
+
+                <div class="input-row">
+                    <label>其他天</label>
+                    <input type="text" id="txtAB_Other" value="A/B團加練">
+                </div>
+
+                <div class="input-row">
+                    <label>練習時間</label>
+                    <input type="text" id="timeAB" value="16:00~18:30">
+                </div>
+
+                <button class="btn-ab" onclick="confirmGenerateSemester('AB')" data-tooltip="會清空目前表格，只產生 A/B 團">
+                    只產生 A/B 團表
+                </button>
+            </div>
+
+            <div class="action-card card-silk">
+                <div class="card-header">🎋 絲竹團設定</div>
+
+                <div class="day-selector" id="daysSilk" data-tooltip="勾選絲竹團要練習的星期">
+                    <label class="day-label"><input type="checkbox" value="1"><span>一</span></label>
+                    <label class="day-label"><input type="checkbox" value="2"><span>二</span></label>
+                    <label class="day-label"><input type="checkbox" value="3" checked><span>三</span></label>
+                    <label class="day-label"><input type="checkbox" value="4"><span>四</span></label>
+                    <label class="day-label"><input type="checkbox" value="5"><span>五</span></label>
+                </div>
+
+                <div class="input-row">
+                    <label>活動內容</label>
+                    <input type="text" id="txtSilk" value="絲竹團合奏">
+                </div>
+
+                <div class="input-row">
+                    <label>練習時間</label>
+                    <input type="text" id="timeSilk" value="12:00~15:00">
+                </div>
+
+                <button class="btn-silk" onclick="confirmGenerateSemester('Silk')" data-tooltip="會清空目前表格，只產生絲竹團">
+                    只產生絲竹團表
+                </button>
+            </div>
+
+            <div class="action-card card-main">
+                <div class="card-header">✨ 建議新手使用</div>
+
+                <div class="card-desc">
+                    <strong style="color:#222;">產生完整學期值班表</strong><br>
+                    會依照 A/B 團與絲竹團設定，自動合併並依日期排序。<br>
+                    <span style="color:#d32f2f; font-weight:bold;">注意：重新產生會清空目前表格。</span>
+                </div>
+
+                <button class="btn-all" onclick="confirmGenerateSemester('All')" data-tooltip="第一次使用建議直接按這個">
+                    ✅ 產生完整值班表
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <button id="advancedToggleBtn" class="advanced-toggle-btn" onclick="toggleAdvancedTraining()">
+        ＋ 加入暑訓 / 寒訓或連假加練
+    </button>
+
+    <div id="trainingSection" class="config-section" style="border: 2px solid #FF5722; display:none;">
+        <div class="section-title" style="color:#FF5722; border-color:#ffd8cc;">
+            <span>進階：加入暑訓 / 寒訓 / 連假加練</span>
+            <span class="section-note">此功能會保留目前表格，採累加模式</span>
+        </div>
+
+        <div class="action-grid" style="grid-template-columns:1fr;">
+            <div class="action-card card-training">
+                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:center;">
+                    <label>開始：</label>
+                    <span data-tooltip="訓練第一天">
+                        <input type="date" id="trainStartDate" style="padding:8px; border:1px solid #bbb; border-radius:6px;">
+                    </span>
+
+                    <label>結束：</label>
+                    <span data-tooltip="訓練最後一天">
+                        <input type="date" id="trainEndDate" style="padding:8px; border:1px solid #bbb; border-radius:6px;">
+                    </span>
+                </div>
+
+                <div class="quick-btn-group" style="margin-top:-2px;">
+                    <button class="btn-quick train-color" onclick="quickSetTraining('summer')" data-tooltip="自動填入：7/1 至 8/29">
+                        ☀️ 暑訓
+                    </button>
+                    <button class="btn-quick train-color" onclick="quickSetTraining('winter')" data-tooltip="自動填入：1/21 至 2/10">
+                        ❄️ 寒訓
+                    </button>
+                </div>
+
+                <div class="day-selector train-day-selector" data-tooltip="勾選訓練要舉行的星期">
+                    <label class="day-label train-master-label">
+                        <input type="checkbox" id="trainAllDays" checked onchange="toggleTrainDays(this)" style="transform:scale(1.25);">
+                        <span>一至五</span>
+                    </label>
+
+                    <div style="border-left:2px solid #ffccbc; margin:0 5px;"></div>
+
+                    <label class="day-label" style="flex:0 1 auto;">
+                        <input type="checkbox" value="1" class="train-day-cb" checked onchange="checkTrainAllDays()">
+                        <span>一</span>
+                    </label>
+                    <label class="day-label" style="flex:0 1 auto;">
+                        <input type="checkbox" value="2" class="train-day-cb" checked onchange="checkTrainAllDays()">
+                        <span>二</span>
+                    </label>
+                    <label class="day-label" style="flex:0 1 auto;">
+                        <input type="checkbox" value="3" class="train-day-cb" checked onchange="checkTrainAllDays()">
+                        <span>三</span>
+                    </label>
+                    <label class="day-label" style="flex:0 1 auto;">
+                        <input type="checkbox" value="4" class="train-day-cb" checked onchange="checkTrainAllDays()">
+                        <span>四</span>
+                    </label>
+                    <label class="day-label" style="flex:0 1 auto;">
+                        <input type="checkbox" value="5" class="train-day-cb" checked onchange="checkTrainAllDays()">
+                        <span>五</span>
+                    </label>
+                </div>
+
+                <div style="display:flex; gap:10px; align-items:center; justify-content:center; width:100%; margin-top:5px; flex-wrap:wrap;">
+                    <span data-tooltip="訓練名稱">
+                        <input type="text" id="trainName" value="樂團暑訓" placeholder="活動名稱" style="padding:8px; width:130px; border:1px solid #bbb; border-radius:6px;">
+                    </span>
+
+                    <span data-tooltip="訓練時間">
+                        <input type="text" id="trainTime" value="09:00~16:00" placeholder="時間" style="padding:8px; width:120px; border:1px solid #bbb; border-radius:6px;">
+                    </span>
+
+                    <button class="btn-train" style="width:auto; padding:10px 20px; margin-top:0;" onclick="addTrainingBatch()" data-tooltip="保留現有表格，插入並排序">
+                        ＋ 加入訓練日程
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align:center; color:#FF5722; font-size:0.9em; margin-top:10px; line-height:1.6;">
+            💡 此功能採「累加」模式，不會清除上方已建立的資料。
+        </div>
+    </div>
+
+    <div id="statusMessage" class="status-message"></div>
+
+    <div class="table-container" id="tableArea">
+        <div class="table-section-title">
+            <h2>② 檢查與微調表格</h2>
+            <div id="tableCount" class="table-count">目前 0 筆</div>
+        </div>
+
+        <div class="table-reminder">
+            ⚠️ 請記得手動調整國定假日、學校活動、校際交流、段考或比賽日。
+        </div>
+
+        <table id="scheduleTable">
+            <thead>
+                <tr>
+                    <th style="width:90px;">操作</th>
+                    <th style="width:130px;">日期</th>
+                    <th style="width:60px;">星期</th>
+                    <th style="width:260px;">值班時段/活動內容</th>
+                    <th style="width:140px;">時間</th>
+                    <th>值班家長一</th>
+                    <th>值班家長二</th>
+                    <th>值班家長三</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <div id="emptyMsg" class="empty-message">
+            <div class="empty-icon">📋</div>
+            <strong>目前還沒有值班表</strong>
+            <p>第一次使用請先按上方的 <span>「✅ 產生完整值班表」</span></p>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <button class="btn-copy" onclick="copyTable()" data-tooltip="複製後可直接貼到 Google Sheet 或 Excel">
+            📋 複製表格到 Google Sheet
+        </button>
+        <button class="btn-clear" onclick="clearTable()" data-tooltip="刪除表格內所有資料">
+            🗑️ 清空全部
+        </button>
+    </div>
+
+    <div class="copy-hint">
+        複製後請打開 Google Sheet，點選要貼上的第一格，例如 A1，按 <strong>Ctrl + V</strong>；Mac 請按 <strong>Cmd + V</strong>。
+    </div>
+
+    <datalist id="activityOptions">
+        <option value="A團合奏／B團分組">
+        <option value="A團分組／B團合奏">
+        <option value="絲竹團合奏">
+        <option value="絲竹加練">
+        <option value="A團加練">
+        <option value="B團加練">
+        <option value="樂團暑訓">
+        <option value="樂團寒訓">
+        <option value="分部暑訓">
+        <option value="成發彩排">
+    </datalist>
+
     <script>
-        // ==========================================
-        // i18n Translations Dictionary
-        // ==========================================
-        const dict = {
-            zh: {
-                mainTitle: "Word 多人修訂與備註合併神器",
-                subTitle: "將多份來自同一原稿的 .docx 修訂與備註版本合併為一份對照表 / 重構文件",
-                dropTextMain: "將 <b>多個</b> .docx 檔案拖曳至此處，或點擊選擇檔案",
-                dropTextSub: "(請確保上傳的檔案皆源自同一份原始文件)",
-                tabTable: "👁️ 檢視與匯出表格",
-                tabAuthor: "👤 作者獨立視角",
-                tabDoc: "📄 重構合併文件",
-                btnAdd: "➕ 加入更多檔案",
-                btnClear: "🔄 全部清除",
-                searchPH: "🔍 在修訂或備註中搜尋...",
-                btnExportWord: "📝 匯出 Word",
-                btnExportHtml: "🌐 匯出 HTML",
-                btnExportCsv: "📊 匯出 CSV",
-                thAuthor: "段落順序 + 作者",
-                thType: "類型",
-                thPara: "段落文字 (含修訂與備註)",
-                thBase: "原始段落",
-                thNote: "說明 (針對該作者的紀錄)",
-                heroTitle: "擺脫 XML 衝突！全新重構乾淨的合併文件",
-                heroP1: "此功能避開了 Word 底層極易損毀的追蹤修訂機制，改為直接讀取 HTML 視覺資料。<br><b>系統將以原文件的段落順序，重新生成一份完整且不會跑版的 Word 文件。</b>",
-                btnDownloadDoc: "📄 下載重構的合併文件 (.doc)",
-                heroP2: "※ 此檔案保留了文件的原始閱讀動線，包含備註也會整合標示；有多人修改的段落，會自動分列並用顏色標示作者與內容。",
-                statFiles: "檔案數",
-                statParas: "變更段落",
-                statRevs: "變更筆數",
-                statNoRev: "尚無修訂/備註",
-                emptyRow: "這些檔案中沒有偵測到任何修訂或備註內容。",
-                typeRev: "修訂",
-                typeComment: "備註",
-                typeBoth: "修訂+備註",
-                badgeInsBlock: "整段新增",
-                badgeDelBlock: "整段刪除",
-                badgeIns: "新增",
-                badgeDel: "刪除",
-                badgeFmt: "格式",
-                badgeMoveIn: "移入",
-                badgeMoveOut: "移出",
-                authorUnknown: "未知",
-                confirmClear: "確定要清除所有已解析的檔案嗎？",
-                warnConflict: "偵測到 {n} 個段落的原稿在不同檔案間不一致",
-                warnConflictHint: "可能原因：有作者未全程使用「追蹤修訂」直接修改了原文，或檔案並非源自同一份原稿。受影響段落的合併結果可能不可靠。",
-                warnConflictDetail: "顯示詳細衝突位置",
-                warnConflictLine: '"{p1}" vs "{p2}" — 檔案：{files}',
-                warnConflictMore: "...另有 {n} 個衝突段落未顯示",
-                warnNoParaId: "部分段落缺少 w14:paraId（段落唯一識別碼），系統將以位置序號比對。若檔案段落順序不一致，可能導致對應錯誤。",
-                warnCountMismatch: "檔案段落數量不一致：{details}",
-                exportDocTitle: "多人修訂與備註重構文件：",
-                exportDocSrc: "來源檔案：",
-                exportTableTitle: "多人追蹤修訂與備註對照表 — ",
-                paraNum: "段落 #"
-            },
-            en: {
-                mainTitle: "Word Revisions & Comments Merge Tool",
-                subTitle: "Merge multiple .docx revisions/comments from the same draft into a comparison table / reconstructed document",
-                dropTextMain: "Drag and drop <b>multiple</b> .docx files here, or click to select files",
-                dropTextSub: "(Please ensure all files originate from the same source document)",
-                tabTable: "👁️ View & Export Table",
-                tabAuthor: "👤 Author View",
-                tabDoc: "📄 Reconstruct Merged Doc",
-                btnAdd: "➕ Add More Files",
-                btnClear: "🔄 Clear All",
-                searchPH: "🔍 Search revisions or comments...",
-                btnExportWord: "📝 Export Word",
-                btnExportHtml: "🌐 Export HTML",
-                btnExportCsv: "📊 Export CSV",
-                thAuthor: "Paragraph + Author",
-                thType: "Type",
-                thPara: "Paragraph (with Marks)",
-                thBase: "Original Paragraph",
-                thNote: "Details (Author-specific)",
-                heroTitle: "Avoid XML Conflicts! Reconstruct Clean Merged Documents",
-                heroP1: "This feature bypasses Word's fragile track-changes mechanism by reading visual HTML data.<br><b>The system generates a completely stable Word document in the original paragraph order.</b>",
-                btnDownloadDoc: "📄 Download Reconstructed Doc (.doc)",
-                heroP2: "※ Preserves the original reading flow and integrates comments. Paragraphs modified by multiple authors are separated and color-coded.",
-                statFiles: "Files",
-                statParas: "Modified Paras",
-                statRevs: "Total Changes",
-                statNoRev: "No Revisions/Comments",
-                emptyRow: "No revisions or comments detected in these files.",
-                typeRev: "Revision",
-                typeComment: "Comment",
-                typeBoth: "Rev+Comment",
-                badgeInsBlock: "Block Insert",
-                badgeDelBlock: "Block Delete",
-                badgeIns: "Insert",
-                badgeDel: "Delete",
-                badgeFmt: "Format",
-                badgeMoveIn: "Move In",
-                badgeMoveOut: "Move Out",
-                authorUnknown: "Unknown",
-                confirmClear: "Are you sure you want to clear all parsed files?",
-                warnConflict: "Detected {n} paragraph(s) whose source text differs across files",
-                warnConflictHint: "Likely cause: someone edited the original text without using Track Changes, or the files come from different sources. Merge results may be unreliable.",
-                warnConflictDetail: "Show conflict details",
-                warnConflictLine: '"{p1}" vs "{p2}" — files: {files}',
-                warnConflictMore: "...{n} more conflicting paragraph(s) not shown",
-                warnNoParaId: "Some paragraphs are missing w14:paraId (unique paragraph ID). Using position-based matching — may be unreliable if paragraph order differs between files.",
-                warnCountMismatch: "Paragraph count mismatch: {details}",
-                exportDocTitle: "Multi-user Revisions & Comments Doc: ",
-                exportDocSrc: "Source files: ",
-                exportTableTitle: "Revisions & Comments Comparison — ",
-                paraNum: "Para #"
-            }
-        };
+        const daysMap = ["日", "一", "二", "三", "四", "五", "六"];
 
-        let currentLang = 'zh';
-        function t(key, params = {}) {
-            let s = (dict[currentLang] && dict[currentLang][key]) || key;
-            for (const k in params) s = s.replace(new RegExp(`\\{${k}\\}`, 'g'), params[k]);
-            return s;
-        }
+        // 新增的四個重要函式
+        function updateEmptyState() {
+            const tbody = document.querySelector("#scheduleTable tbody");
+            const emptyMsg = document.getElementById("emptyMsg");
+            const table = document.getElementById("scheduleTable");
+            const countDisplay = document.getElementById("tableCount");
 
-        function toggleLanguage() {
-            currentLang = currentLang === 'zh' ? 'en' : 'zh';
-            document.getElementById('langBtn').innerText = currentLang === 'zh' ? 'English' : '中文';
-            
-            document.querySelectorAll('[data-i18n]').forEach(el => { el.innerHTML = t(el.getAttribute('data-i18n')); });
-            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = t(el.getAttribute('data-i18n-placeholder')); });
+            const rowCount = tbody.rows.length;
+            countDisplay.innerText = `目前 ${rowCount} 筆`;
 
-            renderConsistencyWarning();
-            if (processedFileNames.size > 0 || orderedParagraphIds.length > 0) {
-                renderTable();
-                renderAuthorView();
-                renderStats();
+            if (rowCount === 0) {
+                emptyMsg.style.display = "block";
+                table.style.display = "none";
             } else {
-                renderStats();
+                emptyMsg.style.display = "none";
+                table.style.display = "table";
             }
         }
 
-        // ==========================================
-        // App State
-        // ==========================================
-        let combinedRevisionsMap = new Map();
-        let orderedParagraphIds = [];
-        let processedFileNames = new Set();
-        let baseFileName = "merged_revisions";
-        let authorColors = new Map();
-        let activeAuthorFilter = null;
-        let fileParaCounts = new Map();
-        let hasMissingParaId = false;
+        function scrollToTable() {
+            document.getElementById("tableArea").scrollIntoView({ behavior: "smooth", block: "start" });
+        }
 
-        const fileInput = document.getElementById('wordFiles');
-        const statusDiv = document.getElementById('status');
-        const fileListDiv = document.getElementById('fileList');
-        const dropZone = document.getElementById('fileDropZone');
+        function escapeHtml(unsafe) {
+            if (!unsafe) return "";
+            return unsafe
+                 .toString()
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
 
-        dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
-        dropZone.addEventListener('dragleave', e => { e.preventDefault(); dropZone.classList.remove('dragover'); });
-        dropZone.addEventListener('drop', e => {
-            e.preventDefault(); dropZone.classList.remove('dragover');
-            if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
-        });
-        fileInput.addEventListener('change', e => { if (e.target.files.length) handleFiles(e.target.files); });
+        function escapeAttr(unsafe) {
+            return escapeHtml(unsafe);
+        }
+        // 新增函式結束
 
-        document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
-            btn.addEventListener('click', () => switchTab(btn.dataset.tab, btn));
-            btn.addEventListener('keydown', e => {
-                const tabs = [...document.querySelectorAll('.tab-btn[data-tab]')];
-                const i = tabs.indexOf(btn);
-                if (e.key === 'ArrowRight') { e.preventDefault(); tabs[(i+1) % tabs.length].focus(); tabs[(i+1) % tabs.length].click(); }
-                if (e.key === 'ArrowLeft')  { e.preventDefault(); tabs[(i-1+tabs.length) % tabs.length].focus(); tabs[(i-1+tabs.length) % tabs.length].click(); }
-            });
+        window.addEventListener("DOMContentLoaded", function () {
+            initDefaultDates();
+            updateEmptyState();
         });
 
-        document.getElementById('searchBox').addEventListener('input', applyFilters);
+        function initDefaultDates() {
+            const today = new Date();
+            const currentMonth = today.getMonth() + 1;
 
-        function escapeHTML(str) { return String(str).replace(/[&<>'"]/g, x => ({ '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;' }[x])); }
+            if (currentMonth >= 2 && currentMonth <= 7) {
+                quickSetSemester(2);
+            } else {
+                quickSetSemester(1);
+            }
 
-        function switchTab(tabId, btn) {
-            document.querySelectorAll('.tab-btn[data-tab]').forEach(b => {
-                b.classList.toggle('active', b === btn);
-                b.setAttribute('aria-selected', b === btn ? 'true' : 'false');
+            const nextMon = new Date(today);
+            const offset = (1 + 7 - today.getDay()) % 7 || 7;
+            nextMon.setDate(today.getDate() + offset);
+
+            const nextFri = new Date(nextMon);
+            nextFri.setDate(nextMon.getDate() + 4);
+
+            document.getElementById("trainStartDate").value = formatDate(nextMon);
+            document.getElementById("trainEndDate").value = formatDate(nextFri);
+        }
+
+        function toggleGuide() {
+            const guide = document.getElementById("guideContainer");
+            const btn = document.getElementById("toggleGuideBtn");
+
+            const isHidden = guide.style.display === "none" || guide.style.display === "";
+
+            if (isHidden) {
+                guide.style.display = "block";
+                btn.innerText = "📖 隱藏完整使用說明";
+                btn.style.backgroundColor = "#1976D2";
+                btn.style.color = "#fff";
+            } else {
+                guide.style.display = "none";
+                btn.innerText = "📖 顯示完整使用說明";
+                btn.style.backgroundColor = "#fff";
+                btn.style.color = "#1976D2";
+            }
+        }
+
+        function toggleAdvancedTraining() {
+            const section = document.getElementById("trainingSection");
+            const btn = document.getElementById("advancedToggleBtn");
+
+            const isHidden = section.style.display === "none" || section.style.display === "";
+
+            if (isHidden) {
+                section.style.display = "block";
+                btn.innerText = "－ 收合暑訓 / 寒訓設定";
+            } else {
+                section.style.display = "none";
+                btn.innerText = "＋ 加入暑訓 / 寒訓或連假加練";
+            }
+        }
+
+        function showStatusMessage(message, type = "success") {
+            const box = document.getElementById("statusMessage");
+
+            box.className = "status-message";
+
+            if (type === "success") {
+                box.classList.add("status-success");
+            } else if (type === "warning") {
+                box.classList.add("status-warning");
+            } else {
+                box.classList.add("status-error");
+            }
+
+            box.innerText = message;
+            box.style.display = "block";
+
+            clearTimeout(box._timer);
+            box._timer = setTimeout(function () {
+                box.style.display = "none";
+            }, 4500);
+        }
+
+        function quickSetSemester(term) {
+            const today = new Date();
+            let y = today.getFullYear();
+            const m = today.getMonth() + 1;
+
+            if (term === 1) {
+                if (m <= 2) {
+                    y = y - 1;
+                }
+
+                document.getElementById("semStartDate").value = `${y}-08-30`;
+                document.getElementById("semEndDate").value = `${y + 1}-01-20`;
+
+                showStatusMessage("已帶入上學期日期，請確認後按「產生完整值班表」。", "success");
+            }
+
+            if (term === 2) {
+                if (m >= 8) {
+                    y = y + 1;
+                }
+
+                document.getElementById("semStartDate").value = `${y}-02-11`;
+                document.getElementById("semEndDate").value = `${y}-06-30`;
+
+                showStatusMessage("已帶入下學期日期，請確認後按「產生完整值班表」。", "success");
+            }
+        }
+
+        function quickSetTraining(type) {
+            const today = new Date();
+            let y = today.getFullYear();
+            const m = today.getMonth() + 1;
+
+            if (type === "summer") {
+                if (m >= 9) {
+                    y = y + 1;
+                }
+
+                document.getElementById("trainStartDate").value = `${y}-07-01`;
+                document.getElementById("trainEndDate").value = `${y}-08-29`;
+                document.getElementById("trainName").value = "樂團暑訓";
+                document.getElementById("trainTime").value = "09:00~16:00";
+
+                showStatusMessage("已帶入暑訓日期，請確認星期後按「加入訓練日程」。", "success");
+            }
+
+            if (type === "winter") {
+                if (m >= 3) {
+                    y = y + 1;
+                }
+
+                document.getElementById("trainStartDate").value = `${y}-01-21`;
+                document.getElementById("trainEndDate").value = `${y}-02-10`;
+                document.getElementById("trainName").value = "樂團寒訓";
+                document.getElementById("trainTime").value = "09:00~16:00";
+
+                showStatusMessage("已帶入寒訓日期，請確認星期後按「加入訓練日程」。", "success");
+            }
+        }
+
+        function toggleTrainDays(masterCb) {
+            const checkboxes = document.querySelectorAll(".train-day-cb");
+            checkboxes.forEach(function (cb) {
+                cb.checked = masterCb.checked;
             });
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === tabId));
         }
 
-        function readFileAsArrayBuffer(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = () => reject(reader.error);
-                reader.readAsArrayBuffer(file);
+        function checkTrainAllDays() {
+            const checkboxes = document.querySelectorAll(".train-day-cb");
+            const allChecked = Array.from(checkboxes).every(function (cb) {
+                return cb.checked;
+            });
+
+            document.getElementById("trainAllDays").checked = allChecked;
+        }
+
+        function formatDate(date) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, "0");
+            const d = String(date.getDate()).padStart(2, "0");
+            return `${y}-${m}-${d}`;
+        }
+
+        function parseLocalDate(value) {
+            const parts = value.split("-").map(Number);
+            return new Date(parts[0], parts[1] - 1, parts[2]);
+        }
+
+        function getSelectedDays(containerId) {
+            const checkboxes = document.querySelectorAll(`#${containerId} input[type="checkbox"]:checked`);
+            return Array.from(checkboxes).map(function (cb) {
+                return parseInt(cb.value, 10);
             });
         }
 
-        function colorForAuthor(name) {
-            if (authorColors.has(name)) return authorColors.get(name);
-            let h = 0;
-            for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
-            const hue = h % 360;
-            const color = { bg: `hsl(${hue} 65% 92%)`, fg: `hsl(${hue} 55% 30%)`, border: `hsl(${hue} 55% 50%)` };
-            authorColors.set(name, color);
-            return color;
+        function confirmGenerateSemester(mode) {
+            const tbody = document.querySelector("#scheduleTable tbody");
+
+            if (tbody.rows.length > 0) {
+                const ok = confirm(
+                    "重新產生學期表會清空目前表格內容。\n\n如果你已經手動修改過日期或活動，請先確認是否繼續。"
+                );
+
+                if (!ok) {
+                    showStatusMessage("已取消重新產生，原本表格保留。", "warning");
+                    return;
+                }
+            }
+
+            const count = generateSemester(mode);
+
+            if (count > 0) {
+                const label = mode === "All" ? "完整值班表" : mode === "AB" ? "A/B 團表" : "絲竹團表";
+                showStatusMessage(`✅ 已產生 ${label}，共 ${count} 筆。請往下檢查日期與活動內容。`, "success");
+                scrollToTable();
+            } else {
+                showStatusMessage("沒有產生任何資料。請確認日期區間與星期勾選。", "warning");
+            }
         }
 
-        async function handleFiles(files) {
-            const allDocx = Array.from(files).filter(f => f.name.endsWith('.docx'));
-            const validFiles = allDocx.filter(f => !processedFileNames.has(f.name));
-            const skipped = allDocx.length - validFiles.length;
+        function generateSemester(mode) {
+            const start = document.getElementById("semStartDate").value;
+            const end = document.getElementById("semEndDate").value;
+            const tbody = document.querySelector("#scheduleTable tbody");
 
-            if (allDocx.length === 0) { setStatus(currentLang==='zh'?'請上傳 .docx 格式的檔案':'Please upload .docx files', 'red'); return; }
-            if (validFiles.length === 0) { setStatus(currentLang==='zh'?`已處理過 (略過 ${skipped} 份重複)`:`Already processed (Skipped ${skipped})`, 'orange'); return; }
+            if (!start || !end) {
+                showStatusMessage("請先設定學期區間。", "error");
+                return 0;
+            }
 
-            document.getElementById('uploadSection').classList.add('hidden');
-            setStatus(currentLang==='zh'?`正在深度分析 ${validFiles.length} 份檔案...`:`Analyzing ${validFiles.length} files...`, 'orange', true);
+            const startDate = parseLocalDate(start);
+            const endDate = parseLocalDate(end);
 
-            try {
-                if (processedFileNames.size === 0) { baseFileName = validFiles[0].name.replace(/\.docx$/i, ''); }
+            if (startDate > endDate) {
+                showStatusMessage("學期開始日期不可晚於結束日期。", "error");
+                return 0;
+            }
 
-                for (let file of validFiles) {
-                    const arrayBuffer = await readFileAsArrayBuffer(file);
-                    const docxZip = new PizZip(arrayBuffer);
-                    const docXmlFile = docxZip.file("word/document.xml");
-                    if (!docXmlFile) throw new Error(`${file.name} missing document.xml`);
-                    
-                    const commentsFile = docxZip.file("word/comments.xml");
-                    let commentsMap = {};
-                    if (commentsFile) {
-                        const commentsXml = new DOMParser().parseFromString(commentsFile.asText(), "application/xml");
-                        if (commentsXml.getElementsByTagName('parsererror').length) throw new Error(`${file.name}: comments.xml parse error`);
-                        for (let cNode of commentsXml.getElementsByTagName('w:comment')) {
-                            commentsMap[cNode.getAttribute('w:id')] = {
-                                author: cNode.getAttribute('w:author') || t('authorUnknown'),
-                                text: plainText(cNode)
-                            };
+            tbody.innerHTML = "";
+
+            const abDays = getSelectedDays("daysAB");
+            const abTime = document.getElementById("timeAB").value.trim();
+            const abTextTue = document.getElementById("txtAB_Tue").value.trim();
+            const abTextThu = document.getElementById("txtAB_Thu").value.trim();
+            const abTextOther = document.getElementById("txtAB_Other").value.trim();
+
+            const silkDays = getSelectedDays("daysSilk");
+            const silkTime = document.getElementById("timeSilk").value.trim();
+            const silkText = document.getElementById("txtSilk").value.trim();
+
+            let count = 0;
+            const current = new Date(startDate);
+
+            while (current <= endDate) {
+                const day = current.getDay();
+
+                if (mode === "AB" || mode === "All") {
+                    if (abDays.includes(day)) {
+                        let activity = abTextOther;
+
+                        if (day === 2) {
+                            activity = abTextTue;
                         }
-                    }
 
-                    const docXml = new DOMParser().parseFromString(docXmlFile.asText(), "application/xml");
-                    if (docXml.getElementsByTagName('parsererror').length) throw new Error(`${file.name}: document.xml parse error`);
-                    const paragraphs = docXml.getElementsByTagName('w:p');
-
-                    let pIndex = 0;
-                    let lastFoundIndex = -1; 
-
-                    for (let pNode of paragraphs) {
-                        const revData = extractRevisions(pNode, commentsMap);
-                        
-                        const attrParaId = pNode.getAttribute("w14:paraId");
-                        if (!attrParaId) hasMissingParaId = true;
-                        let rawText = plainText(pNode).trim();
-                        let fallbackId = rawText ? "txt_" + Array.from(rawText).reduce((s, c) => Math.imul(31, s) + c.charCodeAt(0) | 0, 0) : `pos_${pIndex}`;
-                        const paraId = attrParaId || fallbackId;
-
-                        if (!combinedRevisionsMap.has(paraId)) {
-                            let baseText = revData ? revData.before : plainText(pNode);
-                            combinedRevisionsMap.set(paraId, { baseBefore: baseText, revisions: [] });
-                            
-                            if (orderedParagraphIds.length === 0) {
-                                orderedParagraphIds.push(paraId);
-                                lastFoundIndex = 0;
-                            } else {
-                                let insertPos = lastFoundIndex + 1;
-                                orderedParagraphIds.splice(insertPos, 0, paraId);
-                                lastFoundIndex = insertPos;
-                            }
-                        } else {
-                            lastFoundIndex = orderedParagraphIds.indexOf(paraId);
+                        if (day === 4) {
+                            activity = abTextThu;
                         }
 
-                        combinedRevisionsMap.get(paraId).revisions.push({
-                            docName: file.name,
-                            data: revData,
-                            hasRev: revData !== null,
-                            beforeText: revData ? revData.before : plainText(pNode)
-                        });
-                        pIndex++;
+                        insertRow(current, activity, abTime);
+                        count++;
                     }
-                    fileParaCounts.set(file.name, pIndex);
-                    processedFileNames.add(file.name);
                 }
 
-                renderTable();
-                renderAuthorView();
-                renderStats();
-                renderFileList();
-                renderConsistencyWarning();
-                applyFilters();
-
-                setStatus(currentLang === 'zh' ? `解析完成！共處理 ${processedFileNames.size} 份檔案` : `Done! Processed ${processedFileNames.size} files`, 'green');
-                document.getElementById('resultSection').style.display = 'block';
-                dropZone.classList.add('compact');
-                document.getElementById('uploadSection').classList.remove('hidden');
-
-            } catch (err) {
-                console.error(err);
-                setStatus(`Error: ${err.message}`, 'red');
-                document.getElementById('uploadSection').classList.remove('hidden');
-            }
-        }
-
-        function setStatus(text, color, spinner = false) {
-            statusDiv.style.color = color;
-            statusDiv.innerHTML = (spinner ? '<span class="spinner"></span>' : '') + escapeHTML(text);
-        }
-
-        function plainText(pNode) {
-            const getLocal = (n) => (n.tagName ? n.tagName.toLowerCase().replace(/^.*:/, '') : '');
-            let s = "";
-            for (let tNode of pNode.getElementsByTagName("*")) {
-                if (getLocal(tNode) === "t") s += tNode.textContent;
-            }
-            return s;
-        }
-
-        function extractRevisions(pNode, commentsMap) {
-            let before = "", after = "", visualAfter = "";
-            const authors = new Set();
-            const notesData = [];
-            let hasRev = false;
-            const seenCommentIds = new Set();
-
-            const getLocal = (n) => (n.tagName ? n.tagName.toLowerCase().replace(/^.*:/, '') : '');
-
-            let pParent = pNode.parentNode;
-            let blockIns = false, blockDel = false, blockAuthor = t('authorUnknown');
-            while (pParent && pParent.nodeType === 1 && getLocal(pParent) !== "body") {
-                const pTag = getLocal(pParent);
-                if (pTag === "ins" || pTag === "moveto") {
-                    blockIns = true;
-                    blockAuthor = pParent.getAttribute("w:author") || pParent.getAttribute("author") || t('authorUnknown');
-                }
-                if (pTag === "del" || pTag === "movefrom") {
-                    blockDel = true;
-                    blockAuthor = pParent.getAttribute("w:author") || pParent.getAttribute("author") || t('authorUnknown');
-                }
-                pParent = pParent.parentNode;
-            }
-
-            if (blockIns || blockDel) {
-                hasRev = true;
-                authors.add(blockAuthor);
-                notesData.push({ type: 'block', author: blockAuthor, badgeClass: blockIns ? 'ins-badge' : 'del-badge', key: blockIns ? 'badgeInsBlock' : 'badgeDelBlock' });
-            }
-
-            function extractNodeText(node) {
-                let txt = "";
-                for(let c of node.getElementsByTagName("*")) {
-                    const tg = getLocal(c);
-                    if(tg === "t" || tg === "deltext") txt += c.textContent;
-                }
-                return txt;
-            }
-
-            function walk(node, inIns, inDel) {
-                if (node.nodeType !== 1) return;
-                const tag = getLocal(node);
-
-                if (tag === "ins" || tag === "moveto") {
-                    hasRev = true;
-                    const author = node.getAttribute("w:author") || node.getAttribute("author") || t('authorUnknown');
-                    authors.add(author);
-                    const txt = extractNodeText(node);
-                    if (txt) notesData.push({ type: 'inline', author: author, badgeClass: tag === "moveto" ? 'move-badge' : 'ins-badge', key: tag === "moveto" ? 'badgeMoveIn' : 'badgeIns', text: txt });
-                    Array.from(node.childNodes).forEach(c => walk(c, true, false));
-                } else if (tag === "del" || tag === "movefrom") {
-                    hasRev = true;
-                    const author = node.getAttribute("w:author") || node.getAttribute("author") || t('authorUnknown');
-                    authors.add(author);
-                    const txt = extractNodeText(node);
-                    if (txt) notesData.push({ type: 'inline', author: author, badgeClass: tag === "movefrom" ? 'move-badge' : 'del-badge', key: tag === "movefrom" ? 'badgeMoveOut' : 'badgeDel', text: txt });
-                    Array.from(node.childNodes).forEach(c => walk(c, false, true));
-                } else if (tag === "rprchange" || tag === "pprchange") {
-                    hasRev = true;
-                    const author = node.getAttribute("w:author") || node.getAttribute("author") || t('authorUnknown');
-                    authors.add(author);
-                    notesData.push({ type: 'fmt', author: author, badgeClass: 'fmt-badge', key: 'badgeFmt' });
-                    Array.from(node.childNodes).forEach(c => walk(c, inIns, inDel)); 
-                } else if (tag === "commentrangestart" || tag === "commentreference") {
-                    const cId = node.getAttribute("w:id");
-                    if (cId && !seenCommentIds.has(cId) && commentsMap && commentsMap[cId]) {
-                        seenCommentIds.add(cId);
-                        hasRev = true;
-                        const c = commentsMap[cId];
-                        authors.add(c.author);
-                        notesData.push({ type: 'comment', author: c.author, badgeClass: 'comment-badge', key: 'typeComment', text: c.text });
-                        visualAfter += `<span class="comment-mark" title="__COMMENT_TITLE__">💬</span>`;
+                if (mode === "Silk" || mode === "All") {
+                    if (silkDays.includes(day)) {
+                        insertRow(current, silkText, silkTime);
+                        count++;
                     }
-                    Array.from(node.childNodes).forEach(c => walk(c, inIns, inDel));
-                } else if (tag === "t" || tag === "deltext") {
-                    const tContent = node.textContent;
-                    if (inIns) {
-                        after += tContent;
-                        visualAfter += `<span class="ins-text">${escapeHTML(tContent)}</span>`;
-                    } else if (inDel) {
-                        before += tContent;
-                        visualAfter += `<del>${escapeHTML(tContent)}</del>`;
-                    } else {
-                        before += tContent;
-                        after += tContent;
-                        visualAfter += escapeHTML(tContent);
-                    }
-                } else {
-                    Array.from(node.childNodes).forEach(c => walk(c, inIns, inDel));
                 }
-            }
-            
-            walk(pNode, blockIns, blockDel);
 
-            return hasRev
-                ? { authors: [...authors].join(", "), authorList: [...authors], before, after, visualAfter, notes: notesData }
-                : null;
-        }
-
-        // ==========================================
-        // Render Functions
-        // ==========================================
-        function renderFileList() {
-            fileListDiv.innerHTML = [...processedFileNames].map(n => `<span class="file-chip">${escapeHTML(n)}</span>`).join("");
-        }
-
-        function renderStats() {
-            const authorCount = new Map();
-            let modifiedParagraphs = 0;
-            let totalRevisions = 0;
-            for (const paraId of orderedParagraphIds) {
-                const data = combinedRevisionsMap.get(paraId);
-                const modified = data.revisions.filter(r => r.hasRev);
-                if (modified.length > 0) modifiedParagraphs++;
-                modified.forEach(r => {
-                    totalRevisions++;
-                    r.data.authorList.forEach(a => authorCount.set(a, (authorCount.get(a) || 0) + 1));
-                });
+                current.setDate(current.getDate() + 1);
             }
 
-            const sortedAuthors = [...authorCount.entries()].sort((a, b) => b[1] - a[1]);
+            sortTable();
+            updateEmptyState();
 
-            const chipsHTML = sortedAuthors.length === 0
-                ? `<span style="color:var(--c-muted)">${t('statNoRev')}</span>`
-                : sortedAuthors.map(([name, count]) => {
-                    const c = colorForAuthor(name);
-                    return `<span class="author-chip" data-author="${escapeHTML(name)}"
-                              style="background:${c.bg};color:${c.fg};border-color:${c.border};">
-                              ${escapeHTML(name)}<span class="count">${count}</span>
-                            </span>`;
-                  }).join("");
+            return count;
+        }
 
-            document.getElementById('statsBar').innerHTML = `
-                <div class="stat"><span class="stat-num">${processedFileNames.size}</span><span class="stat-label">${t('statFiles')}</span></div>
-                <div class="stat-divider"></div>
-                <div class="stat"><span class="stat-num">${modifiedParagraphs}</span><span class="stat-label">${t('statParas')}</span></div>
-                <div class="stat-divider"></div>
-                <div class="stat"><span class="stat-num">${totalRevisions}</span><span class="stat-label">${t('statRevs')}</span></div>
-                <div class="stat-divider"></div>
-                <div class="author-chips" id="authorChips">${chipsHTML}</div>
-            `;
+        function addTrainingBatch() {
+            const start = document.getElementById("trainStartDate").value;
+            const end = document.getElementById("trainEndDate").value;
+            const name = document.getElementById("trainName").value.trim();
+            const time = document.getElementById("trainTime").value.trim();
 
-            document.querySelectorAll('#authorChips .author-chip').forEach(chip => {
-                chip.addEventListener('click', toggleAuthorFilter);
-                chip.addEventListener('keydown', e => {
-                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleAuthorFilter.call(chip); }
-                });
-                function toggleAuthorFilter() {
-                    const author = chip.dataset.author;
-                    activeAuthorFilter = (activeAuthorFilter === author) ? null : author;
-                    document.querySelectorAll('#authorChips .author-chip').forEach(c => {
-                        c.classList.toggle('dim', activeAuthorFilter !== null && c.dataset.author !== activeAuthorFilter);
-                    });
-                    applyFilters();
-                }
+            const checkedBoxes = document.querySelectorAll(".train-day-cb:checked");
+            const selectedDays = Array.from(checkedBoxes).map(function (cb) {
+                return parseInt(cb.value, 10);
             });
-        }
 
-        // 第一個分頁：依段落順序檢視
-        function renderTable() {
-            const tbody = document.getElementById('resultBody');
-            tbody.innerHTML = '';
-            
-            let globalCount = 0;
-            let paraAbsoluteIndex = 0; 
-
-            for (let paraId of orderedParagraphIds) {
-                paraAbsoluteIndex++; 
-                
-                const paragraphData = combinedRevisionsMap.get(paraId);
-                const modifiedRevs = paragraphData.revisions.filter(r => r.hasRev);
-
-                if (modifiedRevs.length > 0) {
-                    modifiedRevs.forEach((rev, fileIndex) => {
-                        const authorsToRender = rev.data.authorList.length > 0 ? rev.data.authorList : [t('authorUnknown')];
-
-                        authorsToRender.forEach((authorName, authorIndex) => {
-                            globalCount++;
-                            const tr = document.createElement('tr');
-                            
-                            if (fileIndex === 0 && authorIndex === 0) {
-                                tr.classList.add('row-group-start');
-                            } else {
-                                tr.classList.add('repeated-para-row');
-                            }
-                            
-                            const c = colorForAuthor(authorName);
-                            const paraLabel = `<div class="para-num">${t('paraNum')}${paraAbsoluteIndex}</div>`;
-                            const tags = `<span class="author-tag" style="background:${c.bg};color:${c.fg};">${escapeHTML(authorName)}</span>`;
-
-                            const authorNotes = rev.data.notes.filter(n => n.author === authorName);
-                            let hasRevNote = authorNotes.some(n => n.type !== 'comment');
-                            let hasCommentNote = authorNotes.some(n => n.type === 'comment');
-                            
-                            let typeHtml = "", typeStr = "";
-                            if (hasRevNote && hasCommentNote) { typeHtml = `<span class="type-tag type-both">${t('typeBoth')}</span>`; typeStr = t('typeBoth'); } 
-                            else if (hasRevNote) { typeHtml = `<span class="type-tag type-rev">${t('typeRev')}</span>`; typeStr = t('typeRev'); } 
-                            else if (hasCommentNote) { typeHtml = `<span class="type-tag type-comment">${t('typeComment')}</span>`; typeStr = t('typeComment'); } 
-                            else { typeHtml = `<span class="type-tag type-rev">${t('typeRev')}</span>`; typeStr = t('typeRev'); }
-
-                            const renderedNotes = authorNotes.map(n => `<span class="badge ${n.badgeClass}">${t(n.key)}</span> ${n.text ? escapeHTML(n.text) : ''}`);
-                            const noteHtml = renderedNotes.join("<br><br>");
-                            const rawNoteText = authorNotes.map(n => n.text || '').join(" ");
-
-                            const localVisualAfter = rev.data.visualAfter.replace(/__COMMENT_TITLE__/g, t('typeComment'));
-
-                            tr.dataset.authors = authorName;
-                            tr.dataset.searchText = (rev.data.after + " " + paragraphData.baseBefore + " " + rawNoteText).toLowerCase();
-                            
-                            tr.innerHTML = `
-                                <td><div class="author-cell">${paraLabel}${tags}<span class="row-num">編號: ${globalCount}</span></div></td>
-                                <td data-csv-value="${escapeHTML(typeStr)}" style="text-align:center;">${typeHtml}</td>
-                                <td data-csv-value="${escapeHTML(rev.data.after)}">${localVisualAfter}</td>
-                                <td data-csv-value="${escapeHTML(paragraphData.baseBefore)}">${escapeHTML(paragraphData.baseBefore)}</td>
-                                <td data-csv-value="${escapeHTML(rawNoteText)}">${noteHtml}</td>
-                            `;
-                            tbody.appendChild(tr);
-                        });
-                    });
-                }
-            }
-
-            if (globalCount === 0) {
-                tbody.innerHTML = `<tr class="empty-row"><td colspan="5">${t('emptyRow')}</td></tr>`;
-            }
-        }
-
-        // 第二個分頁：依作者群組檢視 (Group By Author)
-        function renderAuthorView() {
-            const container = document.getElementById('authorViewContent');
-            container.innerHTML = '';
-            
-            const authorGroups = new Map();
-            let paraAbsoluteIndex = 0;
-
-            // 整理資料
-            for (let paraId of orderedParagraphIds) {
-                paraAbsoluteIndex++;
-                const paragraphData = combinedRevisionsMap.get(paraId);
-                const modifiedRevs = paragraphData.revisions.filter(r => r.hasRev);
-                
-                if (modifiedRevs.length > 0) {
-                    modifiedRevs.forEach((rev) => {
-                        const authorsToRender = rev.data.authorList.length > 0 ? rev.data.authorList : [t('authorUnknown')];
-                        
-                        authorsToRender.forEach(authorName => {
-                            if (!authorGroups.has(authorName)) authorGroups.set(authorName, []);
-                            
-                            const authorNotes = rev.data.notes.filter(n => n.author === authorName);
-                            if (authorNotes.length === 0) return; // 該作者在該段落中如果沒有實質動作就不收錄
-                            
-                            let hasRevNote = authorNotes.some(n => n.type !== 'comment');
-                            let hasCommentNote = authorNotes.some(n => n.type === 'comment');
-                            
-                            let typeHtml = "";
-                            if (hasRevNote && hasCommentNote) typeHtml = `<span class="type-tag type-both">${t('typeBoth')}</span>`;
-                            else if (hasRevNote) typeHtml = `<span class="type-tag type-rev">${t('typeRev')}</span>`;
-                            else if (hasCommentNote) typeHtml = `<span class="type-tag type-comment">${t('typeComment')}</span>`;
-                            else typeHtml = `<span class="type-tag type-rev">${t('typeRev')}</span>`;
-
-                            const renderedNotes = authorNotes.map(n => `<span class="badge ${n.badgeClass}">${t(n.key)}</span> ${n.text ? escapeHTML(n.text) : ''}`);
-                            const noteHtml = renderedNotes.join("<br><br>");
-                            const localVisualAfter = rev.data.visualAfter.replace(/__COMMENT_TITLE__/g, t('typeComment'));
-
-                            authorGroups.get(authorName).push({
-                                paraIndex: paraAbsoluteIndex,
-                                typeHtml: typeHtml,
-                                visualAfter: localVisualAfter,
-                                baseBefore: paragraphData.baseBefore,
-                                noteHtml: noteHtml
-                            });
-                        });
-                    });
-                }
-            }
-
-            if (authorGroups.size === 0) {
-                container.innerHTML = `<div style="padding:40px; text-align:center; color:#888;">${t('emptyRow')}</div>`;
+            if (!start || !end) {
+                showStatusMessage("請設定訓練開始與結束日期。", "error");
                 return;
             }
 
-            // 繪製 HTML
-            let html = '';
-            authorGroups.forEach((records, authorName) => {
-                const c = colorForAuthor(authorName);
-                html += `
-                    <div style="margin-bottom: 24px; border: 1px solid var(--c-border); border-radius: var(--radius); background: white; overflow: hidden; box-shadow: var(--shadow-sm);">
-                        <div style="background: ${c.bg}; color: ${c.fg}; padding: 12px 18px; font-weight: bold; font-size: 1.15em; border-bottom: 1px solid var(--c-border); display: flex; justify-content: space-between; align-items: center;">
-                            <span>👤 ${escapeHTML(authorName)}</span>
-                            <span style="font-size: 0.85em; opacity: 0.8; background: rgba(255,255,255,0.5); padding: 4px 10px; border-radius: 12px;">${records.length} ${t('statRevs')}</span>
-                        </div>
-                        <div class="table-wrap" style="max-height: 50vh; border: none; border-radius: 0;">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th style="width:10%; text-align:center;">${t('paraNum')}</th>
-                                        <th style="width:10%; text-align:center;">${t('thType')}</th>
-                                        <th style="width:30%">${t('thPara')}</th>
-                                        <th style="width:23%">${t('thBase')}</th>
-                                        <th style="width:27%">${t('thNote')}</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                `;
-                
-                records.forEach(rec => {
-                    html += `
-                        <tr>
-                            <td style="text-align:center;"><div class="para-num" style="margin:0;">#${rec.paraIndex}</div></td>
-                            <td style="text-align:center;">${rec.typeHtml}</td>
-                            <td>${rec.visualAfter}</td>
-                            <td>${escapeHTML(rec.baseBefore)}</td>
-                            <td>${rec.noteHtml}</td>
-                        </tr>
-                    `;
+            if (!name) {
+                showStatusMessage("請輸入訓練活動名稱。", "error");
+                return;
+            }
+
+            if (selectedDays.length === 0) {
+                showStatusMessage("請至少勾選一天的星期。", "error");
+                return;
+            }
+
+            const startDate = parseLocalDate(start);
+            const endDate = parseLocalDate(end);
+
+            if (startDate > endDate) {
+                showStatusMessage("訓練開始日期不可晚於結束日期。", "error");
+                return;
+            }
+
+            let count = 0;
+            const current = new Date(startDate);
+
+            while (current <= endDate) {
+                const day = current.getDay();
+
+                if (selectedDays.includes(day)) {
+                    insertRow(current, name, time);
+                    count++;
+                }
+
+                current.setDate(current.getDate() + 1);
+            }
+
+            sortTable();
+            updateEmptyState();
+
+            if (count > 0) {
+                showStatusMessage(`✅ 已加入訓練日程，共 ${count} 筆，並依日期排序完成。`, "success");
+                scrollToTable();
+            } else {
+                showStatusMessage("沒有符合條件的訓練日期，請確認日期與星期勾選。", "warning");
+            }
+        }
+
+        function insertRow(dateObj, activity = "", time = "", nextToRow = null) {
+            const tbody = document.querySelector("#scheduleTable tbody");
+            const row = document.createElement("tr");
+
+            const dateCopy = new Date(dateObj);
+            const isoDate = formatDate(dateCopy);
+            const dayText = daysMap[dateCopy.getDay()];
+
+            row.setAttribute("data-date", isoDate);
+
+            row.innerHTML = `
+                <td class="action-cell">
+                    <button class="icon-btn add-row-btn" onclick="insertRowBelow(this)" data-tooltip="在此列下方插入新列">＋</button>
+                    <button class="icon-btn del-btn" onclick="removeRow(this)" data-tooltip="刪除此列">×</button>
+                </td>
+                <td data-tooltip="可直接修改日期">
+                    <input type="date" class="editable-cell date-cell" value="${escapeAttr(isoDate)}" onchange="updateRowDate(this)">
+                </td>
+                <td>
+                    <span class="day-text">${escapeHtml(dayText)}</span>
+                </td>
+                <td data-tooltip="可輸入或選擇預設活動">
+                    <input class="editable-cell" list="activityOptions" value="${escapeAttr(activity)}" placeholder="輸入活動">
+                </td>
+                <td data-tooltip="可修改時間">
+                    <input class="editable-cell" value="${escapeAttr(time)}" placeholder="例如 16:00~18:30">
+                </td>
+                <td></td>
+                <td></td>
+                <td></td>
+            `;
+
+            if (nextToRow) {
+                nextToRow.after(row);
+            } else {
+                tbody.appendChild(row);
+            }
+
+            updateEmptyState();
+        }
+
+        function insertRowBelow(btn) {
+            const currentRow = btn.closest("tr");
+            const currentDateStr = currentRow.getAttribute("data-date");
+            const currentDate = parseLocalDate(currentDateStr);
+
+            insertRow(currentDate, "", "", currentRow);
+            showStatusMessage("已在該列下方新增一列空白資料。", "success");
+        }
+
+        function removeRow(btn) {
+            btn.closest("tr").remove();
+            updateEmptyState();
+            showStatusMessage("已刪除該列。", "success");
+        }
+
+        function updateRowDate(input) {
+            if (!input.value) {
+                showStatusMessage("日期不可為空。", "error");
+                return;
+            }
+
+            const date = parseLocalDate(input.value);
+
+            if (isNaN(date.getTime())) {
+                showStatusMessage("日期格式不正確。", "error");
+                return;
+            }
+
+            const row = input.closest("tr");
+            row.setAttribute("data-date", input.value);
+            row.querySelector(".day-text").innerText = daysMap[date.getDay()];
+
+            sortTable();
+            updateEmptyState();
+            showStatusMessage("日期已更新，並已重新排序。", "success");
+        }
+
+        function sortTable() {
+            const tbody = document.querySelector("#scheduleTable tbody");
+            const rows = Array.from(tbody.querySelectorAll("tr"));
+
+            rows.sort(function (a, b) {
+                const dateA = a.getAttribute("data-date");
+                const dateB = b.getAttribute("data-date");
+
+                if (dateA === dateB) {
+                    return 0;
+                }
+
+                return dateA.localeCompare(dateB);
+            });
+
+            rows.forEach(function (row) {
+                tbody.appendChild(row);
+            });
+        }
+
+        function clearTable() {
+            const tbody = document.querySelector("#scheduleTable tbody");
+
+            if (tbody.rows.length === 0) {
+                showStatusMessage("目前沒有資料需要清空。", "warning");
+                return;
+            }
+
+            const ok = confirm("確定要清空所有內容嗎？");
+
+            if (!ok) {
+                showStatusMessage("已取消清空。", "warning");
+                return;
+            }
+
+            tbody.innerHTML = "";
+            updateEmptyState();
+            showStatusMessage("已清空全部資料。", "success");
+        }
+
+        function copyTable() {
+            const table = document.getElementById("scheduleTable");
+            const tbody = table.querySelector("tbody");
+
+            if (tbody.rows.length === 0) {
+                showStatusMessage("目前沒有資料可複製。", "warning");
+                return;
+            }
+
+            sortTable();
+
+            const output = [];
+
+            const headers = Array.from(table.querySelectorAll("thead th"))
+                .slice(1)
+                .map(function (th) {
+                    return th.innerText.trim();
                 });
-                
-                html += `
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                `;
-            });
 
-            container.innerHTML = html;
-        }
+            output.push(headers.join("\t"));
 
-        function applyFilters() {
-            const q = document.getElementById('searchBox').value.trim().toLowerCase();
-            document.querySelectorAll('#resultBody tr').forEach(tr => {
-                if (tr.classList.contains('empty-row')) return;
-                const author = tr.dataset.authors || "";
-                const matchAuthor = !activeAuthorFilter || author === activeAuthorFilter;
-                const matchText = !q || (tr.dataset.searchText || "").includes(q);
-                tr.style.display = (matchAuthor && matchText) ? '' : 'none';
-            });
-        }
+            table.querySelectorAll("tbody tr").forEach(function (row) {
+                const cells = Array.from(row.querySelectorAll("td")).slice(1);
 
-        function renderConsistencyWarning() {
-            const banner = document.getElementById('consistencyWarning');
-            const parts = [];
+                const rowData = cells.map(function (td, idx) {
+                    const input = td.querySelector("input");
 
-            // 1. Text consistency conflicts
-            const conflicts = [];
-            for (const paraId of orderedParagraphIds) {
-                const entry = combinedRevisionsMap.get(paraId);
-                if (entry.conflicts && entry.conflicts.length > 0) {
-                    conflicts.push({ paraId, entry });
-                }
-            }
+                    if (idx === 0 && input && input.type === "date") {
+                        const d = parseLocalDate(input.value);
+                        return `${d.getMonth() + 1}/${d.getDate()}`;
+                    }
 
-            if (conflicts.length > 0) {
-                const previewLen = 40;
-                const prv = s => { const tm = (s || '').trim(); return tm.length <= previewLen ? (tm || '(空)') : tm.slice(0, previewLen) + '…'; };
-                const items = conflicts.slice(0, 8).map(({ entry }) => {
-                    const allFiles = [entry.baseFile, ...entry.conflicts.map(c => c.file)];
-                    return `<li>${escapeHTML(t('warnConflictLine', { p1: prv(entry.baseBefore), p2: prv(entry.conflicts[0].text), files: allFiles.join(' / ') }))}</li>`;
-                }).join('');
-                const more = conflicts.length > 8 ? `<li>${escapeHTML(t('warnConflictMore', { n: conflicts.length - 8 }))}</li>` : '';
-                parts.push(`<div class="warn-title">${escapeHTML(t('warnConflict', { n: conflicts.length }))}</div>
-                    <div class="warn-hint">${escapeHTML(t('warnConflictHint'))}</div>
-                    <details><summary>${escapeHTML(t('warnConflictDetail'))}</summary><ul class="warn-list">${items}${more}</ul></details>`);
-            }
+                    if (input) {
+                        return input.value.trim();
+                    }
 
-            // 2. Missing paraId warning
-            if (hasMissingParaId) {
-                parts.push(`<div style="margin-top:6px;">${escapeHTML(t('warnNoParaId'))}</div>`);
-            }
-
-            // 3. Paragraph count mismatch
-            if (fileParaCounts.size > 1) {
-                const counts = [...fileParaCounts.entries()];
-                const maxC = Math.max(...counts.map(([, c]) => c));
-                const minC = Math.min(...counts.map(([, c]) => c));
-                if (maxC !== minC) {
-                    const details = counts.map(([n, c]) => `${escapeHTML(n)} (${c})`).join(' / ');
-                    parts.push(`<div style="margin-top:6px;">${escapeHTML(t('warnCountMismatch', { details }))}</div>`);
-                }
-            }
-
-            if (parts.length === 0) { banner.classList.add('hidden'); banner.innerHTML = ''; }
-            else { banner.innerHTML = parts.join('<hr style="border:none;border-top:1px solid rgba(0,0,0,.1);margin:8px 0;">'); banner.classList.remove('hidden'); }
-        }
-
-        // ==========================================
-        // Exports
-        // ==========================================
-        function getRenderedNotesAsText(notesData) {
-            return notesData.map(n => `[${t(n.key)}] ${n.author}: ${n.text ? n.text : ''}`).join("\n");
-        }
-
-        function exportToVisualDoc() {
-            let htmlContent = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-            <head><meta charset='utf-8'><title>Reconstructed Document</title>
-            <style>
-                body { font-family: 'Microsoft JhengHei', 'Segoe UI', Arial, sans-serif; font-size: 11pt; line-height: 1.5; }
-                .author-label { font-weight: bold; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 10pt; margin-right: 8px; }
-                p { margin-bottom: 12px; text-align: justify; }
-                .rev-block { border-left: 3px solid #8e44ad; background-color: #f8f9fa; padding: 8px 10px; margin-bottom: 8px; }
-                .doc-title { text-align: center; color: #2c3e50; font-size: 16pt; font-weight: bold; margin-bottom: 6px; }
-                .doc-meta { text-align: center; color: #7f8c8d; font-size: 9pt; margin-bottom: 18px; }
-                ins, .ins-text { color: #27ae60; text-decoration: underline; font-weight: bold; }
-                del { color: #e74c3c; text-decoration: line-through; }
-                .comment-mark { background-color: #fff3cd; color:#333; font-weight:bold; }
-            </style></head><body>
-            <div class="doc-title">${t('exportDocTitle')}${escapeHTML(baseFileName)}</div>
-            <div class="doc-meta">${t('exportDocSrc')}${[...processedFileNames].map(escapeHTML).join(" / ")}</div>
-            <hr>`;
-
-            for (let paraId of orderedParagraphIds) {
-                const paraData = combinedRevisionsMap.get(paraId);
-                const modifiedRevs = paraData.revisions.filter(r => r.hasRev);
-
-                if (modifiedRevs.length > 0) {
-                    modifiedRevs.forEach(rev => {
-                        const firstAuthor = rev.data.authorList[0] || t('authorUnknown');
-                        const c = colorForAuthor(firstAuthor);
-                        const localVisualAfter = rev.data.visualAfter.replace(/__COMMENT_TITLE__/g, t('typeComment'));
-                        const textNote = escapeHTML(getRenderedNotesAsText(rev.data.notes)).replace(/\n/g, '<br>');
-                        
-                        htmlContent += `<div class="rev-block" style="border-left-color:${c.border};">
-                            <span class="author-label" style="background-color:${c.border};">[${escapeHTML(rev.data.authors)}]</span>
-                            ${localVisualAfter}
-                            <div style="font-size:9pt; color:#666; margin-top:8px; line-height: 1.4;">${textNote}</div>
-                        </div>`;
-                    });
-                } else {
-                    let text = escapeHTML(paraData.baseBefore);
-                    if (!text.trim()) text = "&nbsp;";
-                    htmlContent += `<p>${text}</p>`;
-                }
-            }
-
-            htmlContent += "</body></html>";
-            const blob = new Blob(['\uFEFF', htmlContent], { type: 'application/msword' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `${baseFileName}_Reconstructed.doc`;
-            link.click();
-            setTimeout(() => URL.revokeObjectURL(link.href), 1000);
-        }
-
-        function exportToWordTable() {
-            const preHtml = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-            <head><meta charset='utf-8'><title>Revision Table</title>
-            <style> table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid black; padding: 8px; text-align: left; vertical-align: top; white-space: pre-wrap; } th { background-color: #D3D3D3; } ins, .ins-text { color: #27ae60; text-decoration: underline; font-weight: bold; } del { color: #e74c3c; text-decoration: line-through; } .badge { color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.78em; margin-right: 4px; } .ins-badge { background-color: #27ae60; } .del-badge { background-color: #e74c3c; } .fmt-badge { background-color: #f39c12; } .move-badge { background-color: #1abc9c; } .comment-badge { background-color: #3498db; } .type-tag { padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 0.85em; } .type-rev { background-color: #ffebee; color: #c62828; } .type-comment { background-color: #e3f2fd; color: #1565c0; } .type-both { background-color: #f3e5f5; color: #6a1b9a; } </style></head><body>
-            <h2 style="text-align:center;">${t('exportTableTitle')}${escapeHTML(baseFileName)}</h2>`;
-            const html = preHtml + document.getElementById('revisionTable').outerHTML + "</body></html>";
-            const blob = new Blob(['\uFEFF', html], { type: 'application/msword' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `${baseFileName}_Table.doc`;
-            link.click();
-            setTimeout(() => URL.revokeObjectURL(link.href), 1000);
-        }
-
-        function exportToHTML() {
-            const tableHTML = document.getElementById('revisionTable').outerHTML;
-            const style = document.querySelector('style').innerHTML;
-            const fullHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escapeHTML(baseFileName)} - Table</title><style>${style}</style></head>
-                              <body><div class="container"><h2>${t('exportTableTitle')}${escapeHTML(baseFileName)}</h2><div class="table-wrap">${tableHTML}</div></div></body></html>`;
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(new Blob([fullHTML], { type: 'text/html' }));
-            link.download = `${baseFileName}_Table.html`;
-            link.click();
-            setTimeout(() => URL.revokeObjectURL(link.href), 1000);
-        }
-
-        function exportToCSV() {
-            const rows = document.querySelectorAll("#revisionTable tr");
-            let csv = "\uFEFF";
-            rows.forEach(row => {
-                const cells = Array.from(row.querySelectorAll("th, td")).map(c => {
-                    const v = c.getAttribute('data-csv-value');
-                    let val = v !== null ? v : c.innerText.replace(/\s+/g, ' ').trim();
-                    if (/^[=+\-@\t]/.test(val)) val = "'" + val;
-                    return `"${val.replace(/"/g, '""')}"`;
+                    return td.innerText.trim();
                 });
-                csv += cells.join(",") + "\r\n";
-            });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-            link.download = `${baseFileName}_Table.csv`;
-            link.click();
-            setTimeout(() => URL.revokeObjectURL(link.href), 1000);
-        }
 
-        function resetUI() {
-            if (processedFileNames.size > 0 && !confirm(t('confirmClear'))) return;
-            combinedRevisionsMap.clear();
-            orderedParagraphIds = [];
-            processedFileNames.clear();
-            authorColors.clear();
-            activeAuthorFilter = null;
-            fileParaCounts.clear();
-            hasMissingParaId = false;
-            document.getElementById('resultSection').style.display = 'none';
-            document.getElementById('resultBody').innerHTML = '';
-            document.getElementById('statsBar').innerHTML = '';
-            document.getElementById('consistencyWarning').classList.add('hidden');
-            document.getElementById('consistencyWarning').innerHTML = '';
-            document.getElementById('fileList').innerHTML = '';
-            document.getElementById('status').innerHTML = '';
-            document.getElementById('searchBox').value = '';
-            document.getElementById('uploadSection').classList.remove('hidden');
+                output.push(rowData.join("\t"));
+            });
+
+            navigator.clipboard.writeText(output.join("\n"))
+                .then(() => showStatusMessage("✅ 表格內容已複製！", "success"))
+                .catch(err => showStatusMessage("複製失敗，請手動圈選複製。", "error"));
         }
-        
     </script>
 </body>
 </html>
